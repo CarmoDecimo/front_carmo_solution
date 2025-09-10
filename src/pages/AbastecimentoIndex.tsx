@@ -11,7 +11,9 @@ import Container from '@mui/material/Container';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import SpeedIcon from '@mui/icons-material/Speed';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import BugReportIcon from '@mui/icons-material/BugReport';
 import { styled } from '@mui/material/styles';
+import { testarAbastecimento } from '../templates/abastecimento/test-abastecimento';
 
 const ModuleCard = styled(Card)(() => ({
   height: '100%',
@@ -57,6 +59,22 @@ function AbastecimentoPage() {
           <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
             Módulo de controle de combustível, atualização de horímetros e geração de alertas.
           </Typography>
+          
+          {/* Botão de Teste - Apenas para desenvolvimento */}
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              startIcon={<BugReportIcon />}
+              onClick={async () => {
+                console.log('🧪 Iniciando teste...');
+                await testarAbastecimento();
+              }}
+            >
+              Testar Template Excel
+            </Button>
+          </Box>
         </Box>
 
         {/* Funcionalidades Section */}
