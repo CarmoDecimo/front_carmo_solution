@@ -1,0 +1,115 @@
+:root {
+  --primary: #60a5fa;
+  --primary-hover: #3b82f6;
+  --text-primary: #e6eef8;
+  --text-secondary: #9fb4d6;
+  --bg-dark: #0f1724;
+  --bg-card: #0b1220;
+  --border-color: rgba(255, 255, 255, 0.03);
+  
+  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: var(--text-primary);
+  background-color: var(--bg-dark);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+a {
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--primary-hover);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--primary);
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.25s;
+}
+button:hover {
+  background-color: var(--primary-hover);
+}
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Ajustes globais para melhorar aparência em dispositivos móveis */
+@media (max-width: 600px) {
+  .MuiContainer-root {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  
+  .MuiTableContainer-root {
+    overflow-x: auto;
+  }
+}
+
+/* Estilo para status chips */
+.status-chip {
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+  text-align: center;
+}
+
+.status-pendente {
+  background-color: rgba(253, 186, 116, 0.1);
+  color: #fdba74;
+  border: 1px solid rgba(253, 186, 116, 0.2);
+}
+
+.status-atrasado {
+  background-color: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.status-concluido {
+  background-color: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.status-agendado {
+  background-color: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}

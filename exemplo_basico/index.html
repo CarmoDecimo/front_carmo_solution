@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-PT">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Esqueleto App — Gestão de Abastecimentos & Manutenção</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- SheetJS (xlsx) CDN - gera ficheiros Excel no browser -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>App Esqueleto — Abastecimentos & Calendário Preventivo</h1>
+        <p class="muted">Exporta ficheiros Excel (PA.DME.01.M02 e PA.DME.01.M01) a partir de formulários.</p>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>1) Controlo de Abastecimento — PA.DME.01.M02</h2>
+
+            <!-- Cabeçalho -->
+            <div class="form-inline">
+                <div class="row">
+                    <label>Data <input type="date" id="ab_cab_data" required></label>
+                    <label>Existência Início (Lts) <input type="number" id="ab_exist_inicio"></label>
+                    <label>Entrada Combustível (Lts) <input type="number" id="ab_entrada"></label>
+                </div>
+                <div class="row">
+                    <label>Posto / Local <input type="text" id="ab_local"></label>
+                    <label>Matrícula / Ativo <input type="text" id="ab_cab_matricula"></label>
+                    <label>Operador <input type="text" id="ab_operador"></label>
+                </div>
+            </div>
+
+            <!-- Tabela dinâmica -->
+            <form id="form-abastecimento" class="form-inline">
+                <div class="row">
+                    <label>Equipamento <input type="text" id="ab_equipamento"></label>
+                    <label>Activo <input type="text" id="ab_activo"></label>
+                    <label>Matrícula <input type="text" id="ab_matricula"></label>
+                    <label>Quantidade (Lts) <input type="number" id="ab_qtd" step="0.01"></label>
+                    <label>KM/H <input type="number" id="ab_kmh"></label>
+                    <label>Assinatura <input type="text" id="ab_assinatura"></label>
+                </div>
+
+                <div class="actions">
+                    <button type="button" id="ab_add_row">Adicionar Linha</button>
+                    <button type="button" id="ab_export">Exportar Excel (PA.DME.01.M02)</button>
+                    <button type="button" id="ab_clear">Limpar</button>
+                </div>
+            </form>
+
+            <div class="table-wrap">
+                <table id="table-abastecimentos">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Equipamento</th>
+                            <th>Activo</th>
+                            <th>Matrícula</th>
+                            <th>Qtd (Lts)</th>
+                            <th>KM/H</th>
+                            <th>Assinatura</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="form-inline">
+                <div class="row">
+                    <label>Existência Fim (Lts) <input type="number" id="ab_exist_fim"></label>
+                    <label>Responsável pelo Abastecimento <input type="text" id="ab_resp_final"></label>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="card">
+            <h2>2) Calendário de Manutenção Preventiva — PA.DME.01.M01</h2>
+            <form id="form-manutencao" class="form-inline">
+                <div class="row">
+                    <label>Viatura (matrícula) <input type="text" id="mn_veiculo" required></label>
+                    <label>Tipo de Manutenção <input type="text" id="mn_tipo" placeholder="Troca óleo, Revisão ..."
+                            required></label>
+                    <label>Data Prevista <input type="date" id="mn_data_prevista" required></label>
+                </div>
+                <div class="row">
+                    <label>Km Previsto <input type="number" id="mn_km_prev" min="0"></label>
+                    <label>Horímetro Previsto <input type="number" id="mn_horimetro_prev" min="0"></label>
+                    <label>Responsável Execução <input type="text" id="mn_responsavel"></label>
+                </div>
+
+                <div class="actions">
+                    <button type="button" id="mn_add_row">Adicionar à Tabela</button>
+                    <button type="button" id="mn_export">Exportar Excel (PA.DME.01.M01)</button>
+                    <button type="button" id="mn_clear">Limpar Tabela</button>
+                </div>
+            </form>
+
+            <div class="table-wrap">
+                <table id="table-manutencoes">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Viatura</th>
+                            <th>Tipo</th>
+                            <th>Data Prevista</th>
+                            <th>Km Previsto</th>
+                            <th>Horímetro Previsto</th>
+                            <th>Responsável</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>3) Controlo de Horímetros — PA.DME.01.M03</h2>
+            <div class="actions">
+                <button type="button" id="hm_export">Exportar Excel (PA.DME.01.M03)</button>
+                <button type="button" id="hm_clear">Limpar Tabela</button>
+            </div>
+
+            <div class="table-wrap">
+                <table id="table-horimetros">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Equipamento</th>
+                            <th>Ativo</th>
+                            <th>Matrícula</th>
+                            <th>Hora/KM Atual</th>
+                            <th>Data</th>
+                            <th>Horas que faltam</th>
+                            <th>Última Rev Hor</th>
+                            <th>Última Rev Data</th>
+                            <th>Última Rev Tipo</th>
+                            <th>Próx Rev Hor</th>
+                            <th>Próx Rev Tipo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+
+        <footer class="muted">
+            <p>Exporta .xlsx em formato tabular. Depois podes abrir com Excel e ajustar template conforme necessário.
+            </p>
+        </footer>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
