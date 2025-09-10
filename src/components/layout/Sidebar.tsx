@@ -145,35 +145,82 @@ function Sidebar({ open, onClose }: SidebarProps) {
                   backgroundColor: isActive ? 'rgba(96, 165, 250, 0.1)' : 'transparent',
                 }}
               >
-                <ListItemButton
-                  component={item.subItems ? 'div' : Link}
-                  to={item.subItems ? undefined : item.path}
-                  onClick={(e: React.MouseEvent<HTMLDivElement>) => item.subItems ? handleToggleExpand(index, e) : undefined}
-                  sx={{ 
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      backgroundColor: 'rgba(96, 165, 250, 0.05)'
-                    }
-                  }}
-                >
-                  <ListItemIcon sx={{ 
-                    color: isActive || hasActiveChild ? 'primary.main' : 'text.secondary' 
-                  }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
+                {item.subItems ? (
+                  // Para itens com subitens: área clicável dividida
+                  <Box sx={{ display: 'flex', width: '100%' }}>
+                    {/* Área principal - navega para o módulo */}
+                    <ListItemButton
+                      component={Link}
+                      to={item.path}
+                      sx={{ 
+                        flex: 1,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'rgba(96, 165, 250, 0.05)'
+                        }
+                      }}
+                    >
+                      <ListItemIcon sx={{ 
+                        color: isActive || hasActiveChild ? 'primary.main' : 'text.secondary' 
+                      }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={item.text} 
+                        sx={{ 
+                          color: isActive || hasActiveChild ? 'primary.main' : 'inherit',
+                          fontWeight: 500
+                        }}
+                      />
+                    </ListItemButton>
+                    
+                    {/* Área do ícone - expande/colapsa */}
+                    <Box
+                      onClick={(e: React.MouseEvent<HTMLDivElement>) => handleToggleExpand(index, e)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 40,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'rgba(96, 165, 250, 0.1)'
+                        }
+                      }}
+                    >
+                      {isItemExpanded 
+                        ? <ExpandMoreIcon sx={{ color: hasActiveChild ? 'primary.main' : 'text.secondary', fontSize: 20 }} />
+                        : <ChevronRightIcon sx={{ color: hasActiveChild ? 'primary.main' : 'text.secondary', fontSize: 20 }} />
+                      }
+                    </Box>
+                  </Box>
+                ) : (
+                  // Para itens sem subitens: comportamento normal
+                  <ListItemButton
+                    component={Link}
+                    to={item.path}
                     sx={{ 
-                      color: isActive || hasActiveChild ? 'primary.main' : 'inherit',
-                      fontWeight: 500
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        backgroundColor: 'rgba(96, 165, 250, 0.05)'
+                      }
                     }}
-                  />
-                  {item.subItems && (
-                    isItemExpanded 
-                      ? <ExpandMoreIcon sx={{ color: hasActiveChild ? 'primary.main' : 'text.secondary', fontSize: 20 }} />
-                      : <ChevronRightIcon sx={{ color: hasActiveChild ? 'primary.main' : 'text.secondary', fontSize: 20 }} />
-                  )}
-                </ListItemButton>
+                  >
+                    <ListItemIcon sx={{ 
+                      color: isActive || hasActiveChild ? 'primary.main' : 'text.secondary' 
+                    }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={item.text} 
+                      sx={{ 
+                        color: isActive || hasActiveChild ? 'primary.main' : 'inherit',
+                        fontWeight: 500
+                      }}
+                    />
+                  </ListItemButton>
+                )}
               </ListItem>
               
               {/* Subitens com animação de collapse */}
