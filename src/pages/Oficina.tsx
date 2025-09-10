@@ -5,10 +5,25 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Container from '@mui/material/Container';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import BuildIcon from '@mui/icons-material/Build';
 import ForumIcon from '@mui/icons-material/Forum';
 import SummarizeIcon from '@mui/icons-material/Summarize';
+import { styled } from '@mui/material/styles';
+
+const ModuleCard = styled(Card)(() => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+  },
+}));
 
 function OficinaPage() {
   const funcionalidades = [
@@ -39,55 +54,60 @@ function OficinaPage() {
   ];
 
   return (
-    <div>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Oficina
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom sx={{ mb: 4 }}>
-        Módulo de gestão de manutenção com fichas de controle e relatórios.
-      </Typography>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Stack spacing={4}>
+        {/* Header */}
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Oficina
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+            Módulo de gestão de manutenção com fichas de controle e relatórios.
+          </Typography>
+        </Box>
 
-      <Grid container spacing={3}>
-        {funcionalidades.map((item, index) => (
-          <Grid item xs={12} sm={6} md={6} key={index}>
-            <Card sx={{ 
-              height: '100%', 
-              display: 'flex', 
-              flexDirection: 'column',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
-              }
-            }}>
-              <CardContent sx={{ flexGrow: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ marginRight: '16px', color: '#60a5fa' }}>
-                    {item.icon}
-                  </div>
-                  <Typography variant="h6" component="h2">
-                    {item.title}
-                  </Typography>
-                </div>
-                <Typography variant="body2" color="text.secondary">
-                  {item.description}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button 
-                  component={Link} 
-                  to={item.path} 
-                  variant="contained" 
-                  size="small"
-                >
-                  Acessar
-                </Button>
-              </CardActions>
-            </Card>
+        {/* Funcionalidades Section */}
+        <Box>
+          <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
+            Funcionalidades Disponíveis
+          </Typography>
+          <Grid container spacing={3}>
+            {funcionalidades.map((item, index) => (
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={index}>
+                <ModuleCard>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Stack spacing={2}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ color: 'primary.main' }}>
+                          {item.icon}
+                        </Box>
+                        <Typography variant="h6" component="h2">
+                          {item.title}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        {item.description}
+                      </Typography>
+                    </Stack>
+                  </CardContent>
+                  <CardActions sx={{ pt: 0 }}>
+                    <Button 
+                      component={Link} 
+                      to={item.path} 
+                      variant="contained" 
+                      size="small"
+                      fullWidth
+                    >
+                      Acessar
+                    </Button>
+                  </CardActions>
+                </ModuleCard>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
-    </div>
+        </Box>
+      </Stack>
+    </Container>
   );
 }
 
