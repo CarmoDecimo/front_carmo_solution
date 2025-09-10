@@ -22,6 +22,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { preencherTemplateAbastecimento, calcularExistenciaFinal } from '../templates/abastecimento/abastecimento-template';
 
 // Tipos para os dados do abastecimento
 interface AbastecimentoLinha {
@@ -148,8 +149,77 @@ function Abastecimento() {
     setLinhas([]);
   };
 
-  // Exportar para Excel
-  const exportarExcel = () => {
+  // Exportar para Excel usando template
+  const exportarExcel = async () => {
+    try {
+      // Preparar os dados no formato esperado pelo template
+      const dadosTemplate = {
+        data: {
+          dia: cabecalho.data.getDate(),
+          mes: cabecalho.data.getMonth() + 1,
+          ano: cabecalho.data.getFullYear()
+        },
+        existenciaInicio: Number(cabecalho.existenciaInicio) || 0,
+        entradaCombustivel: Number(cabecalho.entradaCombustivel) || 0,
+        postoAbastecimento: cabecalho.posto,
+        matriculaAtivo: cabecalho.matricula,
+        operador: cabecalho.operador,
+        equipamentos: linhas.map(linha => ({
+          equipamento: linha.equipamento,
+          activo: linha.activo,
+          matricula: linha.matricula,
+          quantidade: linha.quantidade,
+          kmH: linha.kmh || 0,
+          assinatura: linha.assinatura
+        })),
+        existenciaFim: Number(rodape.existenciaFim) || calcularExistenciaFinal(
+          Number(cabecalho.existenciaInicio) || 0,
+          Number(cabecalho.entradaCombustivel) || 0,
+          linhas.map(linha => ({
+            equipamento: linha.equipamento,
+            activo: linha.activo,
+            matricula: linha.matricula,
+            quantidade: linha.quantidade,
+            kmH: linha.kmh || 0,
+            assinatura: linha.assinatura
+          }))
+        ),
+        responsavelAbastecimento: rodape.responsavelFinal
+      };
+
+      // Gerar o arquivo usando o template
+      const buffer = await preencherTemplateAbastecimento(dadosTemplate);
+      
+      // Criar blob e download
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const dataFormatada = cabecalho.data.toLocaleDateString('pt-BR').replace(/\//g, '-');
+      a.download = `PA.DME.01.M02_Abastecimento_${dataFormatada}.xlsx`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ Excel exportado com sucesso usando template!');
+      
+    } catch (error) {
+      console.error('❌ Erro ao exportar Excel:', error);
+      
+      // Fallback para o método antigo em caso de erro
+      console.log('⚠️ Usando método de exportação alternativo...');
+      exportarExcelBasico();
+    }
+  };
+
+  // Método de exportação básico (fallback)
+  const exportarExcelBasico = () => {
     const dataFormatada = cabecalho.data.toLocaleDateString('pt-BR');
     
     const ws_data = [
