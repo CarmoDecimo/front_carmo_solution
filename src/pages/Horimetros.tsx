@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -168,14 +168,14 @@ function Horimetros() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="h4" component="h1" gutterBottom>
             Controlo de Horímetros — PA.DME.01.M03
           </Typography>
         </Grid>
 
         {/* Formulário */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -183,7 +183,7 @@ function Horimetros() {
               </Typography>
               
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Equipamento"
@@ -193,7 +193,7 @@ function Horimetros() {
                     onChange={(e) => handleChange('equipamento', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Activo"
@@ -202,7 +202,7 @@ function Horimetros() {
                     onChange={(e) => handleChange('activo', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Matrícula"
@@ -211,7 +211,7 @@ function Horimetros() {
                     onChange={(e) => handleChange('matricula', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Hora/KM Atual"
@@ -222,7 +222,7 @@ function Horimetros() {
                     onChange={(e) => handleChange('horAtual', Number(e.target.value))}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <DatePicker
                     label="Data"
                     value={horimetroAtual.data}
@@ -232,12 +232,12 @@ function Horimetros() {
                 </Grid>
                 
                 {/* Informações de revisão anterior */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle1" sx={{ mt: 2 }}>
                     Informações da Última Revisão
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Última Rev. Horímetro"
@@ -247,7 +247,7 @@ function Horimetros() {
                     onChange={(e) => handleChange('ultimaRevHor', e.target.value ? Number(e.target.value) : null)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <DatePicker
                     label="Última Rev. Data"
                     value={horimetroAtual.ultimaRevData}
@@ -255,7 +255,7 @@ function Horimetros() {
                     slotProps={{ textField: { fullWidth: true, margin: 'normal' } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Última Rev. Tipo"
@@ -266,12 +266,12 @@ function Horimetros() {
                 </Grid>
                 
                 {/* Informações da próxima revisão */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle1" sx={{ mt: 2 }}>
                     Informações da Próxima Revisão
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Próx. Rev. Horímetro"
@@ -281,7 +281,7 @@ function Horimetros() {
                     onChange={(e) => handleChange('proxRevHor', e.target.value ? Number(e.target.value) : null)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Próx. Rev. Tipo"
@@ -291,7 +291,7 @@ function Horimetros() {
                   />
                 </Grid>
                 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button 
                     variant="contained" 
                     startIcon={<AddIcon />}
@@ -307,7 +307,7 @@ function Horimetros() {
         </Grid>
 
         {/* Tabela de horímetros */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TableContainer component={Paper}>
             <Table size="small">
               <TableHead>
@@ -367,9 +367,9 @@ function Horimetros() {
         </Grid>
 
         {/* Ações */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Grid container spacing={2}>
-            <Grid item>
+            <Grid size={{ xs: 12 }}>
               <Button 
                 variant="contained" 
                 color="primary"
@@ -379,7 +379,7 @@ function Horimetros() {
                 Exportar Excel (PA.DME.01.M03)
               </Button>
             </Grid>
-            <Grid item>
+            <Grid size={{ xs: 12 }}>
               <Button 
                 variant="outlined" 
                 color="error"

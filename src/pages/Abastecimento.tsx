@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -169,8 +169,8 @@ function Abastecimento() {
         linha.equipamento,
         linha.activo,
         linha.matricula,
-        linha.quantidade,
-        linha.kmh,
+        linha.quantidade.toString(),
+        linha.kmh?.toString() || '',
         linha.assinatura
       ]);
     });
@@ -204,14 +204,14 @@ function Abastecimento() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="h4" component="h1" gutterBottom>
             Controlo de Abastecimento — PA.DME.01.M02
           </Typography>
         </Grid>
 
         {/* Cabeçalho */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -219,7 +219,7 @@ function Abastecimento() {
               </Typography>
               
               <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <DatePicker
                     label="Data"
                     value={cabecalho.data}
@@ -227,7 +227,7 @@ function Abastecimento() {
                     slotProps={{ textField: { fullWidth: true, margin: 'normal' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Existência Início (Lts)"
@@ -237,7 +237,7 @@ function Abastecimento() {
                     onChange={(e) => handleCabecalhoChange('existenciaInicio', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Entrada Combustível (Lts)"
@@ -247,7 +247,7 @@ function Abastecimento() {
                     onChange={(e) => handleCabecalhoChange('entradaCombustivel', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Posto / Local"
@@ -256,7 +256,7 @@ function Abastecimento() {
                     onChange={(e) => handleCabecalhoChange('posto', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Matrícula / Ativo"
@@ -265,7 +265,7 @@ function Abastecimento() {
                     onChange={(e) => handleCabecalhoChange('matricula', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Operador"
@@ -280,7 +280,7 @@ function Abastecimento() {
         </Grid>
 
         {/* Formulário para adicionar linhas */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -288,7 +288,7 @@ function Abastecimento() {
               </Typography>
               
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
                   <TextField
                     fullWidth
                     label="Equipamento"
@@ -297,7 +297,7 @@ function Abastecimento() {
                     onChange={(e) => handleLinhaChange('equipamento', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
                   <TextField
                     fullWidth
                     label="Activo"
@@ -305,7 +305,7 @@ function Abastecimento() {
                     onChange={(e) => handleLinhaChange('activo', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
                   <TextField
                     fullWidth
                     label="Matrícula"
@@ -314,7 +314,7 @@ function Abastecimento() {
                     onChange={(e) => handleLinhaChange('matricula', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
                   <TextField
                     fullWidth
                     label="Quantidade (Lts)"
@@ -324,7 +324,7 @@ function Abastecimento() {
                     onChange={(e) => handleLinhaChange('quantidade', Number(e.target.value))}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
                   <TextField
                     fullWidth
                     label="KM/H"
@@ -333,7 +333,7 @@ function Abastecimento() {
                     onChange={(e) => handleLinhaChange('kmh', e.target.value ? Number(e.target.value) : null)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 2 }}>
                   <TextField
                     fullWidth
                     label="Assinatura"
@@ -341,7 +341,7 @@ function Abastecimento() {
                     onChange={(e) => handleLinhaChange('assinatura', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button 
                     variant="contained" 
                     startIcon={<AddIcon />}
@@ -357,7 +357,7 @@ function Abastecimento() {
         </Grid>
 
         {/* Tabela de linhas adicionadas */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
@@ -407,11 +407,11 @@ function Abastecimento() {
         </Grid>
 
         {/* Rodapé */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
                     label="Existência Fim (Lts)"
@@ -421,7 +421,7 @@ function Abastecimento() {
                     onChange={(e) => handleRodapeChange('existenciaFim', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
                     label="Responsável pelo Abastecimento"
@@ -436,9 +436,9 @@ function Abastecimento() {
         </Grid>
 
         {/* Ações */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Grid container spacing={2}>
-            <Grid item>
+            <Grid size={{ xs: 12, sm: 'auto' }}>
               <Button 
                 variant="contained" 
                 color="primary"
@@ -448,7 +448,7 @@ function Abastecimento() {
                 Exportar Excel (PA.DME.01.M02)
               </Button>
             </Grid>
-            <Grid item>
+            <Grid size={{ xs: 12, sm: 'auto' }}>
               <Button 
                 variant="outlined" 
                 color="error"

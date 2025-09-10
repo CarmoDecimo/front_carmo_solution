@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -170,14 +170,14 @@ function Manutencao() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="h4" component="h1" gutterBottom>
             Calendário de Manutenção Preventiva — PA.DME.01.M01
           </Typography>
         </Grid>
 
         {/* Formulário */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -185,7 +185,7 @@ function Manutencao() {
               </Typography>
               
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Viatura (matrícula)"
@@ -195,7 +195,7 @@ function Manutencao() {
                     onChange={(e) => handleChange('veiculo', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <FormControl fullWidth margin="normal">
                     <InputLabel id="tipo-manutencao-label">Tipo de Manutenção</InputLabel>
                     <Select
@@ -211,7 +211,7 @@ function Manutencao() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <DatePicker
                     label="Data Prevista"
                     value={manutencaoAtual.dataPrevista}
@@ -219,7 +219,7 @@ function Manutencao() {
                     slotProps={{ textField: { fullWidth: true, margin: 'normal', required: true } }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Km Previsto"
@@ -229,7 +229,7 @@ function Manutencao() {
                     onChange={(e) => handleChange('kmPrevisto', e.target.value ? Number(e.target.value) : null)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Horímetro Previsto"
@@ -239,7 +239,7 @@ function Manutencao() {
                     onChange={(e) => handleChange('horimetroPrevisto', e.target.value ? Number(e.target.value) : null)}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Responsável Execução"
@@ -248,7 +248,7 @@ function Manutencao() {
                     onChange={(e) => handleChange('responsavel', e.target.value)}
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button 
                     variant="contained" 
                     startIcon={<AddIcon />}
@@ -264,7 +264,7 @@ function Manutencao() {
         </Grid>
 
         {/* Tabela de manutenções */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
@@ -322,9 +322,9 @@ function Manutencao() {
         </Grid>
 
         {/* Ações */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Grid container spacing={2}>
-            <Grid item>
+            <Grid size={{ xs: 12 }}>
               <Button 
                 variant="contained" 
                 color="primary"
@@ -334,7 +334,7 @@ function Manutencao() {
                 Exportar Excel (PA.DME.01.M01)
               </Button>
             </Grid>
-            <Grid item>
+            <Grid size={{ xs: 12 }}>
               <Button 
                 variant="outlined" 
                 color="error"
