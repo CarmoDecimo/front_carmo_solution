@@ -1,0 +1,28 @@
+.dashboardContainer {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  /* sm breakpoint - corresponde ao sm:ml-64 do App.tsx */
+  .dashboardContainer {
+    width: calc(100% - 0px); /* Sem ajuste adicional necessário */
+  }
+}
+
+/* Confirme que estamos usando o mesmo valor do sidebar width */
+@media (min-width: 768px) {
+  /* md breakpoint */
+  .dashboardContainer {
+    width: calc(100% - 0px); /* Sem ajuste adicional necessário */
+  }
+}
+
+@media (min-width: 1024px) {
+  /* lg breakpoint - corresponde ao lg:ml-64 do App.tsx */
+  .dashboardContainer {
+    width: calc(100% - 0px); /* Sem ajuste adicional necessário */
+  }
+}

@@ -14,7 +14,7 @@ import AlertasIndex from './pages/AlertasIndex';
 import CalendarioIndex from './pages/CalendarioIndex';
 import './App.css';
 
-const DRAWER_WIDTH = 0;
+const DRAWER_WIDTH = 240;
 
 function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);

@@ -1,52 +1,33 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
-import Button from '@mui/material/Button';
-import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
-import Box from '@mui/material/Box';
+import {
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  Alert,
+  AlertTitle,
+  Box,
+} from '@mui/material';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import BuildIcon from '@mui/icons-material/Build';
 import SpeedIcon from '@mui/icons-material/Speed';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ConstructionIcon from '@mui/icons-material/Construction';
-import { styled } from '@mui/material/styles';
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-}));
-
-const IconWrapper = styled('div')(({ theme }) => ({
-  display: 'flex',
-  fontSize: 40,
-  padding: theme.spacing(2),
-  color: theme.palette.primary.main,
-}));
-
-const ModuleCard = styled(Card)(({ theme }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'transform 0.2s ease-in-out',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
-  },
-}));
 
 function Dashboard() {
   const [proximasManutencoes] = useState([
     { id: 1, veiculo: 'JCB 3CX', tipo: 'Troca de Óleo', data: '2025-09-20', kmPrev: '15000', status: 'pendente' },
     { id: 2, veiculo: 'Toyota Hilux', tipo: 'Revisão Geral', data: '2025-09-25', kmPrev: '10000', status: 'pendente' },
     { id: 3, veiculo: 'Caterpillar', tipo: 'Troca de Filtros', data: '2025-09-12', kmPrev: '5000', status: 'atrasado' },
+  ]);
+
+  const [alertas] = useState([
+    { id: 1, tipo: 'Manutenção', equipamento: 'Caterpillar', mensagem: 'Manutenção Preventiva Atrasada', data: '2025-09-12' },
+    { id: 2, tipo: 'Horímetro', equipamento: 'JCB 3CX', mensagem: 'Limite de horas próximo', data: '2025-09-15' },
   ]);
 
   // No futuro, estes dados virão da API
@@ -60,22 +41,17 @@ function Dashboard() {
   };
 
   return (
-    <Box 
-      sx={{ 
-        width: '100%', 
-        height: '100%', 
-        p: 3,
-        overflowY: 'auto',
-      }}
-    >
-      <Typography variant="h4" component="h1" gutterBottom>
-        Dashboard
-      </Typography>
-
-      {/* Alertas */}
-      <Grid container spacing={2}>
+    <Box sx={{ width: '100%' }}>
+      <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Alert severity="warning" sx={{ width: '100%' }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Dashboard
+          </Typography>
+        </Grid>
+
+        {/* Alertas */}
+        <Grid item xs={12}>
+          <Alert severity="warning">
             <AlertTitle>Alertas de Manutenção</AlertTitle>
             {proximasManutencoes.filter(m => m.status === 'atrasado').length > 0 ? (
               <>
@@ -97,7 +73,7 @@ function Dashboard() {
             )}
           </Alert>
         </Grid>
-
+        
         <Grid item xs={12}>
           <Alert severity="info">
             <AlertTitle>Manutenções Próximas</AlertTitle>
@@ -130,11 +106,11 @@ function Dashboard() {
         </Grid>
         
         <Grid item xs={12} sm={6} md={4} lg={2}>
-          <StyledCard>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <IconWrapper>
+              <Box sx={{ fontSize: 40, color: 'primary.main', mb: 2 }}>
                 <LocalGasStationIcon fontSize="inherit" />
-              </IconWrapper>
+              </Box>
               <Typography variant="h5" component="div">
                 {estatisticas.totalAbastecimentos}
               </Typography>
@@ -142,31 +118,31 @@ function Dashboard() {
                 Abastecimentos
               </Typography>
             </CardContent>
-          </StyledCard>
+          </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} lg={2}>
-          <StyledCard>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <IconWrapper>
-                <LocalGasStationIcon fontSize="inherit" />
-              </IconWrapper>
+              <Box sx={{ fontSize: 40, color: 'primary.main', mb: 2 }}>
+                <SpeedIcon fontSize="inherit" />
+              </Box>
               <Typography variant="h5" component="div">
-                {estatisticas.totalCombustivel} Lts
+                {estatisticas.totalCombustivel} L
               </Typography>
               <Typography color="text.secondary">
                 Combustível Total
               </Typography>
             </CardContent>
-          </StyledCard>
+          </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} lg={2}>
-          <StyledCard>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <IconWrapper>
+              <Box sx={{ fontSize: 40, color: 'primary.main', mb: 2 }}>
                 <BuildIcon fontSize="inherit" />
-              </IconWrapper>
+              </Box>
               <Typography variant="h5" component="div">
                 {estatisticas.totalManutencoes}
               </Typography>
@@ -174,47 +150,47 @@ function Dashboard() {
                 Manutenções
               </Typography>
             </CardContent>
-          </StyledCard>
+          </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} lg={2}>
-          <StyledCard>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <IconWrapper>
-                <SpeedIcon fontSize="inherit" />
-              </IconWrapper>
+              <Box sx={{ fontSize: 40, color: 'primary.main', mb: 2 }}>
+                <ConstructionIcon fontSize="inherit" />
+              </Box>
               <Typography variant="h5" component="div">
                 {estatisticas.equipamentosAtivos}
               </Typography>
               <Typography color="text.secondary">
-                Equipamentos
+                Equipamentos Ativos
               </Typography>
             </CardContent>
-          </StyledCard>
+          </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} lg={2}>
-          <StyledCard>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <IconWrapper>
+              <Box sx={{ fontSize: 40, color: 'primary.main', mb: 2 }}>
                 <NotificationsIcon fontSize="inherit" />
-              </IconWrapper>
+              </Box>
               <Typography variant="h5" component="div">
                 {estatisticas.alertasAtivos}
               </Typography>
               <Typography color="text.secondary">
-                Alertas
+                Alertas Ativos
               </Typography>
             </CardContent>
-          </StyledCard>
+          </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={4} lg={2}>
-          <StyledCard>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <IconWrapper>
-                <ConstructionIcon fontSize="inherit" />
-              </IconWrapper>
+              <Box sx={{ fontSize: 40, color: 'primary.main', mb: 2 }}>
+                <BuildIcon fontSize="inherit" />
+              </Box>
               <Typography variant="h5" component="div">
                 {estatisticas.servicosAbertos}
               </Typography>
@@ -222,35 +198,53 @@ function Dashboard() {
                 Serviços Abertos
               </Typography>
             </CardContent>
-          </StyledCard>
+          </Card>
         </Grid>
 
-        {/* Módulos principais */}
+        {/* Módulos */}
         <Grid item xs={12}>
-          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Acesso Rápido aos Módulos
+          <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+            Módulos
           </Typography>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <ModuleCard>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column',
+            '&:hover': {
+              transform: 'translateY(-5px)',
+              boxShadow: 4,
+              transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+            }
+          }}>
+            <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
                 <ConstructionIcon sx={{ mr: 1 }} /> Oficina
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Gerencie inspeções, serviços e comunicação da oficina.
+                Gerencie inspeções, serviços, e manutenções na oficina.
               </Typography>
             </CardContent>
             <CardActions>
               <Button component={Link} to="/oficina" size="small">Acessar</Button>
             </CardActions>
-          </ModuleCard>
+          </Card>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <ModuleCard>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column',
+            '&:hover': {
+              transform: 'translateY(-5px)',
+              boxShadow: 4,
+              transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+            }
+          }}>
+            <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
                 <LocalGasStationIcon sx={{ mr: 1 }} /> Abastecimento
               </Typography>
@@ -261,12 +255,21 @@ function Dashboard() {
             <CardActions>
               <Button component={Link} to="/abastecimento" size="small">Acessar</Button>
             </CardActions>
-          </ModuleCard>
+          </Card>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <ModuleCard>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column',
+            '&:hover': {
+              transform: 'translateY(-5px)',
+              boxShadow: 4,
+              transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+            }
+          }}>
+            <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
                 <NotificationsIcon sx={{ mr: 1 }} /> Alertas
               </Typography>
@@ -277,12 +280,21 @@ function Dashboard() {
             <CardActions>
               <Button component={Link} to="/alertas" size="small">Acessar</Button>
             </CardActions>
-          </ModuleCard>
+          </Card>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <ModuleCard>
-            <CardContent>
+          <Card sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column',
+            '&:hover': {
+              transform: 'translateY(-5px)',
+              boxShadow: 4,
+              transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+            }
+          }}>
+            <CardContent sx={{ flexGrow: 1 }}>
               <Typography gutterBottom variant="h5" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
                 <CalendarMonthIcon sx={{ mr: 1 }} /> Calendário
               </Typography>
@@ -293,7 +305,7 @@ function Dashboard() {
             <CardActions>
               <Button component={Link} to="/calendario" size="small">Acessar</Button>
             </CardActions>
-          </ModuleCard>
+          </Card>
         </Grid>
       </Grid>
     </Box>
