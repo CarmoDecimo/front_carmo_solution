@@ -14,8 +14,6 @@ import AlertasIndex from './pages/AlertasIndex';
 import CalendarioIndex from './pages/CalendarioIndex';
 import './App.css';
 
-const DRAWER_WIDTH = 0;
-
 function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -35,16 +33,11 @@ function App() {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { xs: '100%', sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { xs: 0, sm: `${DRAWER_WIDTH}px` },
+          width: '100%', // Largura total sempre
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
           overflow: 'hidden',
-          transition: theme => theme.transitions.create(['margin', 'width'], {
-            easing: theme.transitions.easing.easeOut,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
         }}
       >
         {/* Header fixo */}

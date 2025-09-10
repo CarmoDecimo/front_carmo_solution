@@ -285,7 +285,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <Box
       component="nav"
-      sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
+      sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
     >
       {/* Mobile drawer */}
       <Drawer
@@ -296,7 +296,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
           keepMounted: true,
         }}
         sx={{
-          display: { xs: 'block', sm: 'none' },
+          display: { xs: 'block', md: 'none' }, // Mostra em xs, sm e oculta em md+
           '& .MuiDrawer-paper': { 
             boxSizing: 'border-box', 
             width: DRAWER_WIDTH,
@@ -313,7 +313,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
         variant="permanent"
         open
         sx={{
-          display: { xs: 'none', sm: 'block' },
+          display: { xs: 'none', md: 'block' }, // Oculta em xs, sm e mostra em md+
           '& .MuiDrawer-paper': { 
             boxSizing: 'border-box', 
             width: DRAWER_WIDTH,

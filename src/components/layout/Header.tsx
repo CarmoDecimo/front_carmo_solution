@@ -26,13 +26,16 @@ function Header({ toggleDrawer }: HeaderProps) {
           aria-label="abrir menu"
           edge="start"
           onClick={toggleDrawer}
-          sx={{ mr: 2 }}
+          sx={{ 
+            mr: 2,
+            display: { xs: 'block', md: 'none' } // Só aparece em telas pequenas (xs, sm) e oculta em médias e grandes (md, lg, xl)
+          }}
         >
           <MenuIcon />
         </IconButton>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Gestão de Abastecimentos & Manutenção Preventiva
+           Carmon Control
           </Typography>
         </Box>
       </Toolbar>
