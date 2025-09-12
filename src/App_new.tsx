@@ -13,7 +13,6 @@ import AbastecimentoIndex from './pages/AbastecimentoIndex';
 import AlertasIndex from './pages/AlertasIndex';
 import CalendarioIndex from './pages/CalendarioIndex';
 import LoginPage from './pages/auth/LoginPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import { AuthProvider } from './contexts/auth/AuthContext';
 import { ProtectedRoute, PublicRoute } from './contexts/auth/ProtectedRoute';
 import './App.css';
@@ -68,7 +67,6 @@ function App() {
         {/* Rotas públicas */}
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/esqueci-senha" element={<ForgotPasswordPage />} />
         </Route>
         
         {/* Rotas protegidas */}
