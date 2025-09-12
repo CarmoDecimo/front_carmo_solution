@@ -1,36 +1,76 @@
 import { api } from './api';
 
+// Interfaces para Centro de Custo
+export interface CentroCusto {
+  id: string;
+  codigo: string;
+  nome: string;
+  descricao?: string;
+  ativo: boolean;
+  created_at: string;
+}
+
 // Interfaces para Abastecimento
+export interface EquipamentoAbastecimento {
+  equipamento: string;
+  activo: string;
+  matricula: string;
+  quantidade: number;
+  kmh?: number;
+  assinatura: string;
+}
+
 export interface Abastecimento {
   id: string;
-  veiculo_id: string;
+  centro_custo_id: string;
   data_abastecimento: string;
-  km_atual: number;
-  litros_abastecidos: number;
-  valor_total: number;
-  valor_por_litro: number;
-  posto: string;
-  motorista: string;
-  observacoes?: string;
+  existencia_inicio: number;
+  entrada_combustivel: number;
+  posto_abastecimento: string;
+  matricula_ativo: string;
+  operador: string;
+  equipamentos: EquipamentoAbastecimento[];
+  existencia_fim: number;
+  responsavel_abastecimento: string;
+  numero_protocolo?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateAbastecimentoRequest {
-  veiculo_id: string;
+  centro_custo_id: string;
   data_abastecimento: string;
-  km_atual: number;
-  litros_abastecidos: number;
-  valor_total: number;
-  valor_por_litro: number;
-  posto: string;
-  motorista: string;
-  observacoes?: string;
+  existencia_inicio: number;
+  entrada_combustivel: number;
+  posto_abastecimento: string;
+  matricula_ativo: string;
+  operador: string;
+  equipamentos: EquipamentoAbastecimento[];
+  existencia_fim: number;
+  responsavel_abastecimento: string;
 }
 
 export interface UpdateAbastecimentoRequest extends Partial<CreateAbastecimentoRequest> {
   id: string;
 }
+
+// Serviço de Centro de Custo
+export const centroCustoService = {
+  // Listar todos os centros de custo
+  getAll: async (): Promise<CentroCusto[]> => {
+    return api.get<CentroCusto[]>('/api/centros-custo');
+  },
+
+  // Obter centros de custo ativos
+  getAtivos: async (): Promise<CentroCusto[]> => {
+    return api.get<CentroCusto[]>('/api/centros-custo?ativo=true');
+  },
+
+  // Obter centro de custo por ID
+  getById: async (id: string): Promise<CentroCusto> => {
+    return api.get<CentroCusto>(`/api/centros-custo/${id}`);
+  },
+};
 
 // Serviço de Abastecimento
 export const abastecimentoService = {
@@ -44,9 +84,9 @@ export const abastecimentoService = {
     return api.get<Abastecimento>(`/api/abastecimento/${id}`);
   },
 
-  // Obter abastecimentos por veículo
-  getByVeiculo: async (veiculoId: string): Promise<Abastecimento[]> => {
-    return api.get<Abastecimento[]>(`/api/abastecimento/veiculo/${veiculoId}`);
+  // Obter abastecimentos por centro de custo
+  getByCentroCusto: async (centroCustoId: string): Promise<Abastecimento[]> => {
+    return api.get<Abastecimento[]>(`/api/abastecimento/centro-custo/${centroCustoId}`);
   },
 
   // Criar novo abastecimento
@@ -65,9 +105,9 @@ export const abastecimentoService = {
   },
 
   // Obter relatório de consumo
-  getRelatorioConsumo: async (veiculoId?: string, periodo?: { inicio: string; fim: string }) => {
+  getRelatorioConsumo: async (centroCustoId?: string, periodo?: { inicio: string; fim: string }) => {
     const params = new URLSearchParams();
-    if (veiculoId) params.append('veiculo_id', veiculoId);
+    if (centroCustoId) params.append('centro_custo_id', centroCustoId);
     if (periodo) {
       params.append('data_inicio', periodo.inicio);
       params.append('data_fim', periodo.fim);

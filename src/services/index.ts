@@ -1,10 +1,11 @@
 // Exporta todos os serviços da API
 export { api, ApiException, API_BASE_URL } from './api';
 export { authService } from './authService';
-export { abastecimentoService } from './abastecimentoService';
+export { abastecimentoService, centroCustoService } from './abastecimentoService';
 export { oficinaService } from './oficinaService';
 export { alertasService } from './alertasService';
 export { veiculosService, horimetroService } from './veiculosService';
+export { userService } from './userService';
 
 // Exporta todas as interfaces
 export type {
@@ -16,9 +17,18 @@ export type {
 } from './authService';
 
 export type {
+  User as UserManagement,
+  CreateUserRequest,
+  UpdateUserRequest,
+  UsersResponse,
+} from './userService';
+
+export type {
   Abastecimento,
   CreateAbastecimentoRequest,
   UpdateAbastecimentoRequest,
+  EquipamentoAbastecimento,
+  CentroCusto,
 } from './abastecimentoService';
 
 export type {

@@ -20,6 +20,7 @@ import ConstructionIcon from '@mui/icons-material/Construction';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ForumIcon from '@mui/icons-material/Forum';
 import SummarizeIcon from '@mui/icons-material/Summarize';
+import PeopleIcon from '@mui/icons-material/People';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
@@ -118,7 +119,10 @@ function Sidebar({ open, onClose }: SidebarProps) {
         { text: 'Mapa de Manutenções', icon: <CalendarMonthIcon />, path: '/calendario/mapa' },
         { text: 'Relatório de Manutenções', icon: <SummarizeIcon />, path: '/calendario/relatorios' },
       ]
-    }
+    },
+    
+    // Módulo 5: Gestão de Usuários
+    { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' }
   ];
 
   const drawer = (

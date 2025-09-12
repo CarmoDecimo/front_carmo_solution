@@ -31,8 +31,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ptBR } from 'date-fns/locale';
 import { preencherTemplateAbastecimento, calcularExistenciaFinal } from '../templates/abastecimento/abastecimento-template';
-import { abastecimentoService, ApiException } from '../services';
-// import { centroCustoService } from '../services'; // TODO: Usar quando API estiver implementada
+import { abastecimentoService, centroCustoService, ApiException } from '../services';
 import type { CentroCusto, CreateAbastecimentoRequest } from '../services';
 
 // Tipos para os dados do abastecimento
@@ -86,60 +85,39 @@ function Abastecimento() {
 
   // Buscar centros de custo
   const fetchCentrosCusto = async () => {
-    // Usar dados simulados enquanto a API não estiver implementada
-    setCentrosCusto([
-      {
-        id: 'cc_001',
-        codigo: 'CC001',
-        nome: 'Operações Mina',
-        descricao: 'Centro de custo para operações de mineração',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_002',
-        codigo: 'CC002',
-        nome: 'Manutenção',
-        descricao: 'Centro de custo para atividades de manutenção',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_003',
-        codigo: 'CC003',
-        nome: 'Transporte',
-        descricao: 'Centro de custo para atividades de transporte',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_004',
-        codigo: 'CC004',
-        nome: 'Logística',
-        descricao: 'Centro de custo para atividades de logística',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_005',
-        codigo: 'CC005',
-        nome: 'Administração',
-        descricao: 'Centro de custo para atividades administrativas',
-        ativo: true,
-        created_at: new Date().toISOString()
-      }
-    ]);
-
-    // TODO: Implementar quando a API estiver disponível
-    /*
     try {
       const centros = await centroCustoService.getAtivos();
       setCentrosCusto(centros);
     } catch (error) {
       console.error('Erro ao carregar centros de custo:', error);
-      // Fallback para dados simulados
+      // Por enquanto, usar dados simulados se não conseguir carregar do backend
+      setCentrosCusto([
+        {
+          id: 'cc_001',
+          codigo: 'CC001',
+          nome: 'Operações Mina',
+          descricao: 'Centro de custo para operações de mineração',
+          ativo: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'cc_002',
+          codigo: 'CC002',
+          nome: 'Manutenção',
+          descricao: 'Centro de custo para atividades de manutenção',
+          ativo: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'cc_003',
+          codigo: 'CC003',
+          nome: 'Transporte',
+          descricao: 'Centro de custo para atividades de transporte',
+          ativo: true,
+          created_at: new Date().toISOString()
+        }
+      ]);
     }
-    */
   };
 
   // Handler para campos do cabeçalho
@@ -226,20 +204,6 @@ function Abastecimento() {
         assinatura: ''
       });
     }
-  };
-
-  // Verificar se todos os campos obrigatórios estão preenchidos
-  const isFormValid = () => {
-    return !!(
-      cabecalho.centroCusto &&
-      cabecalho.existenciaInicio &&
-      cabecalho.entradaCombustivel &&
-      cabecalho.posto &&
-      cabecalho.matricula &&
-      cabecalho.operador &&
-      rodape.responsavelFinal &&
-      linhas.length > 0
-    );
   };
 
   // Enviar dados para o backend
@@ -394,7 +358,7 @@ function Abastecimento() {
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Box sx={{ padding: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Controle de Abastecimento
+          Controle de Abastecimento - Com Centro de Custo
         </Typography>
 
         {/* Cabeçalho */}
@@ -405,6 +369,20 @@ function Abastecimento() {
             </Typography>
             <Stack spacing={3}>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+                <FormControl fullWidth required>
+                  <InputLabel>Centro de Custo</InputLabel>
+                  <Select
+                    value={cabecalho.centroCusto}
+                    label="Centro de Custo"
+                    onChange={(e) => handleCabecalhoChange('centroCusto', e.target.value)}
+                  >
+                    {centrosCusto.map((centro) => (
+                      <MenuItem key={centro.id} value={centro.id}>
+                        {centro.codigo} - {centro.nome}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <DatePicker
                   label="Data"
                   value={cabecalho.data}
@@ -584,39 +562,22 @@ function Abastecimento() {
             <Typography variant="h6" gutterBottom>
               Finalização
             </Typography>
-            <Stack spacing={3}>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <TextField
-                  label="Existência Final (L)"
-                  type="number"
-                  value={rodape.existenciaFim}
-                  onChange={(e) => handleRodapeChange('existenciaFim', e.target.value)}
-                  fullWidth
-                  helperText="Deixe vazio para calcular automaticamente"
-                />
-                <TextField
-                  label="Responsável pelo Abastecimento"
-                  value={rodape.responsavelFinal}
-                  onChange={(e) => handleRodapeChange('responsavelFinal', e.target.value)}
-                  fullWidth
-                  required
-                />
-              </Stack>
-              
-              <FormControl fullWidth required>
-                <InputLabel>Centro de Custo</InputLabel>
-                <Select
-                  value={cabecalho.centroCusto}
-                  label="Centro de Custo"
-                  onChange={(e) => handleCabecalhoChange('centroCusto', e.target.value)}
-                >
-                  {centrosCusto.map((centro) => (
-                    <MenuItem key={centro.id} value={centro.id}>
-                      {centro.codigo} - {centro.nome}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+              <TextField
+                label="Existência Final (L)"
+                type="number"
+                value={rodape.existenciaFim}
+                onChange={(e) => handleRodapeChange('existenciaFim', e.target.value)}
+                fullWidth
+                helperText="Deixe vazio para calcular automaticamente"
+              />
+              <TextField
+                label="Responsável pelo Abastecimento"
+                value={rodape.responsavelFinal}
+                onChange={(e) => handleRodapeChange('responsavelFinal', e.target.value)}
+                fullWidth
+                required
+              />
             </Stack>
           </CardContent>
         </Card>
@@ -628,7 +589,7 @@ function Abastecimento() {
             color="primary"
             onClick={enviarParaBackend}
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-            disabled={loading || !isFormValid()}
+            disabled={loading}
           >
             {loading ? 'Enviando...' : 'Enviar para Backend'}
           </Button>

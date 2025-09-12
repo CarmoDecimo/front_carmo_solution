@@ -12,6 +12,7 @@ import OficinaPage from './pages/Oficina';
 import AbastecimentoIndex from './pages/AbastecimentoIndex';
 import AlertasIndex from './pages/AlertasIndex';
 import CalendarioIndex from './pages/CalendarioIndex';
+import GestaoUsuarios from './pages/GestaoUsuarios';
 import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import { AuthProvider } from './contexts/auth/AuthContext';
@@ -133,6 +134,9 @@ function App() {
                 <p className="text-gray-600">Relatórios programados de manutenções futuras</p>
               </Box>
             } />
+            
+            {/* Módulo 5: Gestão de Usuários */}
+            <Route path="/usuarios" element={<GestaoUsuarios />} />
           </Route>
         </Route>
         
