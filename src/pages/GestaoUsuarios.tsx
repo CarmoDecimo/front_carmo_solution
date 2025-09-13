@@ -153,7 +153,7 @@ function GestaoUsuarios() {
     setFormData({
       nome: '',
       email: '',
-      password: '',
+      password: 'senha123', // Inicializar com senha padrão
       funcao: 'Usuario',
       departamento: '',
       ativo: true,
@@ -523,7 +523,7 @@ function GestaoUsuarios() {
             <Button
               variant="contained"
               onClick={handleSave}
-              disabled={!formData.nome || !formData.email || (dialogMode === 'create' && !formData.password)}
+              disabled={!formData.nome || !formData.email || (dialogMode === 'edit' && !formData.password)}
             >
               {dialogMode === 'create' ? 'Criar' : 'Salvar'}
             </Button>
