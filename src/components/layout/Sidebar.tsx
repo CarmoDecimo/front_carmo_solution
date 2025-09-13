@@ -15,7 +15,7 @@ import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import SpeedIcon from '@mui/icons-material/Speed';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import PersonIcon from '@mui/icons-material/Person';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ForumIcon from '@mui/icons-material/Forum';
@@ -73,7 +73,8 @@ function Sidebar({ open, onClose }: SidebarProps) {
   
   const menuItems: MenuItem[] = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Autenticação', icon: <PersonIcon />, path: '/auth', divider: true },
+    { text: 'Centro de custo', icon: <AccountBalanceIcon />, path: '/centro-custo' },
+    { text: 'Equipamentos', icon: <ConstructionIcon />, path: '/equipamentos', divider: true },
     
     // Módulo 1: Oficina
     { 

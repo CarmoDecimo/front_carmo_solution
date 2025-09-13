@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import CentroCustoPage from './pages/CentroCusto';
+import EquipamentosPage from './pages/Equipamentos';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -137,6 +139,12 @@ function App() {
             
             {/* Módulo 5: Gestão de Usuários */}
             <Route path="/usuarios" element={<GestaoUsuarios />} />
+
+            {/* Módulo 6: Centro de custo */}
+            <Route path="/centro-custo" element={<CentroCustoPage />} />
+            
+            {/* Módulo 7: Equipamentos */}
+            <Route path="/equipamentos" element={<EquipamentosPage />} />
           </Route>
         </Route>
         
