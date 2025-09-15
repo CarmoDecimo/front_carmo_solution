@@ -12,8 +12,6 @@ import Divider from '@mui/material/Divider';
 import Collapse from '@mui/material/Collapse';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
-import SpeedIcon from '@mui/icons-material/Speed';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ConstructionIcon from '@mui/icons-material/Construction';
@@ -102,28 +100,9 @@ function Sidebar({ open, onClose }: SidebarProps) {
     },
     
     // Módulo 2: Abastecimento
-    { 
-      text: 'Abastecimento', 
-      icon: <LocalGasStationIcon />, 
-      path: '/abastecimento',
-      subItems: [
-        { text: 'Controle de Abastecimento', icon: <AssignmentIcon />, path: '/abastecimento/controle' },
-        { text: 'Horímetros', icon: <SpeedIcon />, path: '/horimetros' },
-      ]
-    },
+    { text: 'Abastecimento', icon: <LocalGasStationIcon />, path: '/abastecimento/controle' },
     
-    // Módulo 3: Alertas
-    { 
-      text: 'Alertas', 
-      icon: <NotificationsIcon />, 
-      path: '/alertas',
-      subItems: [
-        { text: 'Todos os Alertas', icon: <NotificationsIcon />, path: '/alertas/todos' },
-        { text: 'Alertas Automáticos', icon: <NotificationsIcon />, path: '/alertas/automaticos' },
-      ]
-    },
-    
-    // Módulo 4: Calendário de Manutenção
+    // Módulo 3: Calendário de Manutenção
     { 
       text: 'Calendário de Manutenção', 
       icon: <CalendarMonthIcon />, 
@@ -134,7 +113,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
       ]
     },
     
-    // Módulo 5: Gestão de Usuários
+    // Módulo 4: Gestão de Usuários
     { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' }
   ];
 

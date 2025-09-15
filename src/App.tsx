@@ -10,10 +10,8 @@ import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Abastecimento from './pages/Abastecimento';
 import Manutencao from './pages/Manutencao';
-import Horimetros from './pages/Horimetros';
 import OficinaPage from './pages/Oficina';
 import AbastecimentoIndex from './pages/AbastecimentoIndex';
-import AlertasIndex from './pages/AlertasIndex';
 import CalendarioIndex from './pages/CalendarioIndex';
 import GestaoUsuarios from './pages/GestaoUsuarios';
 import LoginPage from './pages/auth/LoginPage';
@@ -111,22 +109,6 @@ function App() {
             {/* Módulo 2: Abastecimento */}
             <Route path="/abastecimento" element={<AbastecimentoIndex />} />
             <Route path="/abastecimento/controle" element={<Abastecimento />} />
-            <Route path="/horimetros" element={<Horimetros />} />
-            
-            {/* Módulo 3: Alertas */}
-            <Route path="/alertas" element={<AlertasIndex />} />
-            <Route path="/alertas/todos" element={
-              <Box sx={{ p: 3 }}>
-                <h2 className="text-2xl font-semibold mb-4">Todos os Alertas</h2>
-                <p className="text-gray-600">Listagem de todos os alertas do sistema</p>
-              </Box>
-            } />
-            <Route path="/alertas/automaticos" element={
-              <Box sx={{ p: 3 }}>
-                <h2 className="text-2xl font-semibold mb-4">Alertas Automáticos</h2>
-                <p className="text-gray-600">Alertas gerados automaticamente pelo sistema</p>
-              </Box>
-            } />
             
             {/* Módulo 4: Calendário de Manutenção */}
             <Route path="/calendario" element={<CalendarioIndex />} />

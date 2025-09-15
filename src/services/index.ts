@@ -3,7 +3,6 @@ export { api, ApiException, API_BASE_URL } from './api';
 export { authService } from './authService';
 export { abastecimentoService, centroCustoService } from './abastecimentoService';
 export { oficinaService } from './oficinaService';
-export { alertasService } from './alertasService';
 export { veiculosService, horimetroService } from './veiculosService';
 export { userService } from './userService';
 export { categoriaEquipamentoService } from './categoriaEquipamentoService';
@@ -39,12 +38,6 @@ export type {
   InspecaoEquipamento,
   ItemInspecao,
 } from './oficinaService';
-
-export type {
-  Alerta,
-  CreateAlertaRequest,
-  AlertaSummary,
-} from './alertasService';
 
 export type {
   Veiculo,
