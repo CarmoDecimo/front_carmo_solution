@@ -75,7 +75,18 @@ function Sidebar({ open, onClose }: SidebarProps) {
   const menuItems: MenuItem[] = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Centro de custo', icon: <AccountBalanceIcon />, path: '/centro-custo' },
-    { text: 'Equipamentos', icon: <ConstructionIcon />, path: '/equipamentos', divider: true },
+    
+    // Módulo Equipamentos
+    { 
+      text: 'Equipamentos', 
+      icon: <ConstructionIcon />, 
+      path: '/equipamentos',
+      divider: true,
+      subItems: [
+        { text: 'Categoria de equipamento', icon: <CategoryIcon />, path: '/categorias' },
+        { text: 'Equipamentos', icon: <ConstructionIcon />, path: '/equipamentos' },
+      ]
+    },
     
     // Módulo 1: Oficina
     { 
@@ -124,10 +135,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
     },
     
     // Módulo 5: Gestão de Usuários
-    { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' },
-    
-    // Módulo 6: Gestão de Categorias
-    { text: 'Categorias de Equipamentos', icon: <CategoryIcon />, path: '/categorias' }
+    { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' }
   ];
 
   const drawer = (
