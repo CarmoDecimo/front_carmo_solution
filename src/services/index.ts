@@ -6,6 +6,7 @@ export { oficinaService } from './oficinaService';
 export { alertasService } from './alertasService';
 export { veiculosService, horimetroService } from './veiculosService';
 export { userService } from './userService';
+export { categoriaEquipamentoService } from './categoriaEquipamentoService';
 
 // Exporta todas as interfaces
 export type {
@@ -51,3 +52,9 @@ export type {
   Horimetro,
   CreateHorimetroRequest,
 } from './veiculosService';
+
+export type {
+  Categoria,
+  CreateCategoriaRequest,
+  UpdateCategoriaRequest,
+} from './categoriaEquipamentoService';

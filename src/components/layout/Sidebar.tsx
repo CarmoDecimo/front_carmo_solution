@@ -21,6 +21,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import ForumIcon from '@mui/icons-material/Forum';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import PeopleIcon from '@mui/icons-material/People';
+import CategoryIcon from '@mui/icons-material/Category';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
@@ -123,7 +124,10 @@ function Sidebar({ open, onClose }: SidebarProps) {
     },
     
     // Módulo 5: Gestão de Usuários
-    { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' }
+    { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' },
+    
+    // Módulo 6: Gestão de Categorias
+    { text: 'Categorias de Equipamentos', icon: <CategoryIcon />, path: '/categorias' }
   ];
 
   const drawer = (

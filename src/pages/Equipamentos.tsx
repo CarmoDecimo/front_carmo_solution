@@ -9,6 +9,8 @@ import {
   Edit, Delete, Add, Visibility, Construction, Warning, 
   Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
+import { categoriaEquipamentoService } from '../services';
+import type { Categoria } from '../services';
 
 // Interface para Equipamento conforme API
 interface Equipamento {
@@ -37,12 +39,6 @@ interface Equipamento {
 // Interface para Centro de Custo
 interface CentroCusto {
   centro_custo_id: number;
-  nome: string;
-}
-
-// Interface para Categoria
-interface Categoria {
-  categoria_id: number;
   nome: string;
 }
 
@@ -225,15 +221,22 @@ const EquipamentosPage: React.FC = () => {
   };
 
   const carregarCategorias = async () => {
-    // Dados mockados para categorias até a API estar disponível
-    setCategorias([
-      { categoria_id: 1, nome: 'Trator de Esteira' },
-      { categoria_id: 2, nome: 'Escavadeira' },
-      { categoria_id: 3, nome: 'Caminhão' },
-      { categoria_id: 4, nome: 'Retroescavadeira' },
-      { categoria_id: 5, nome: 'Motoniveladora' },
-      { categoria_id: 6, nome: 'Rolo Compactador' }
-    ]);
+    try {
+      const data = await categoriaEquipamentoService.getAll();
+      setCategorias(data);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      setSnackbar({ open: true, message: 'Erro ao carregar categorias', severity: 'error' });
+      // Fallback para dados mockados em caso de erro
+      setCategorias([
+        { categoria_id: 1, nome: 'Trator de Esteira', descricao: '', criado_em: '' },
+        { categoria_id: 2, nome: 'Escavadeira', descricao: '', criado_em: '' },
+        { categoria_id: 3, nome: 'Caminhão', descricao: '', criado_em: '' },
+        { categoria_id: 4, nome: 'Retroescavadeira', descricao: '', criado_em: '' },
+        { categoria_id: 5, nome: 'Motoniveladora', descricao: '', criado_em: '' },
+        { categoria_id: 6, nome: 'Rolo Compactador', descricao: '', criado_em: '' }
+      ]);
+    }
   };
 
   const handleOpen = () => {
