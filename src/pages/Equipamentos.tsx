@@ -9,7 +9,7 @@ import {
   Edit, Delete, Add, Visibility, Construction, Warning, 
   Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
-import { equipamentosService } from '../services';
+import { equipamentosService, categoriaEquipamentoService } from '../services';
 import type { Categoria } from '../services';
 
 // Interface para Equipamento conforme API
@@ -107,6 +107,16 @@ const EquipamentosPage: React.FC = () => {
     carregarDados();
   }, [filtros]);
 
+  // Recarregar categorias quando a página receber foco (para sincronizar com mudanças)
+  useEffect(() => {
+    const handleFocus = () => {
+      carregarCategorias();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const carregarDados = async () => {
     // Carregar dados da API
     await carregarCategorias();
@@ -175,15 +185,32 @@ const EquipamentosPage: React.FC = () => {
   };
 
   const carregarCategorias = async () => {
-    // Dados mockados para categorias até a API estar disponível
-    setCategorias([
-      { categoria_id: 1, nome: 'Trator de Esteira', criado_em: '2024-01-01T00:00:00Z' },
-      { categoria_id: 2, nome: 'Escavadeira', criado_em: '2024-01-01T00:00:00Z' },
-      { categoria_id: 3, nome: 'Caminhão', criado_em: '2024-01-01T00:00:00Z' },
-      { categoria_id: 4, nome: 'Retroescavadeira', criado_em: '2024-01-01T00:00:00Z' },
-      { categoria_id: 5, nome: 'Motoniveladora', criado_em: '2024-01-01T00:00:00Z' },
-      { categoria_id: 6, nome: 'Rolo Compactador', criado_em: '2024-01-01T00:00:00Z' }
-    ]);
+    try {
+      const response = await categoriaEquipamentoService.getAll();
+      setCategorias(response);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Erro ao carregar categorias. Usando dados padrão.', 
+        severity: 'error' 
+      });
+      
+      // Fallback para dados mockados em caso de erro
+      setCategorias([
+        { categoria_id: 1, nome: 'Trator de Esteira', criado_em: '2024-01-01T00:00:00Z' },
+        { categoria_id: 2, nome: 'Escavadeira', criado_em: '2024-01-01T00:00:00Z' },
+        { categoria_id: 3, nome: 'Caminhão', criado_em: '2024-01-01T00:00:00Z' },
+        { categoria_id: 4, nome: 'Retroescavadeira', criado_em: '2024-01-01T00:00:00Z' },
+        { categoria_id: 5, nome: 'Motoniveladora', criado_em: '2024-01-01T00:00:00Z' },
+        { categoria_id: 6, nome: 'Rolo Compactador', criado_em: '2024-01-01T00:00:00Z' }
+      ]);
+    }
+  };
+
+  // Função para recarregar categorias explicitamente (útil após criar/editar categoria)
+  const refreshCategorias = async () => {
+    await carregarCategorias();
   };
 
   const handleOpen = () => {
