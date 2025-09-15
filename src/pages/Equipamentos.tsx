@@ -9,7 +9,7 @@ import {
   Edit, Delete, Add, Visibility, Construction, Warning, 
   Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
-import { categoriaEquipamentoService } from '../services';
+import { equipamentosService } from '../services';
 import type { Categoria } from '../services';
 
 // Interface para Equipamento conforme API
@@ -27,13 +27,20 @@ interface Equipamento {
   ultima_revisao_horimetro?: number;
   proxima_revisao_horimetro?: number;
   data_ultima_leitura?: string;
+  ultima_revisao_data?: string;
   intervalo_manutencao?: number;
   observacoes?: string;
   centros_custo: Array<{
     centro_custo_id: number;
     nome: string;
     data_associacao: string;
+    associacao_ativa?: boolean;
   }>;
+  categorias_equipamentos?: {
+    categoria_id: number;
+    nome: string;
+    descricao: string;
+  };
 }
 
 // Interface para Centro de Custo
@@ -64,7 +71,9 @@ const EquipamentosPage: React.FC = () => {
   const [horimetroModalOpen, setHorimetroModalOpen] = useState(false);
   const [manutencaoModalOpen, setManutencaoModalOpen] = useState(false);
   const [associacaoModalOpen, setAssociacaoModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [equipamentoSelecionado, setEquipamentoSelecionado] = useState<Equipamento | null>(null);
+  const [equipamentoDetalhes, setEquipamentoDetalhes] = useState<Equipamento | null>(null);
 
   // Estados para ações específicas
   const [novoHorimetro, setNovoHorimetro] = useState<number | ''>('');
@@ -99,22 +108,10 @@ const EquipamentosPage: React.FC = () => {
   }, [filtros]);
 
   const carregarDados = async () => {
-    // Carregar categorias primeiro (dados mockados)
+    // Carregar dados da API
     await carregarCategorias();
-    
-    // Tentar carregar dados reais, mas não falhar se houver erro
-    try {
-      await carregarCentrosCusto();
-    } catch (error) {
-      console.warn('Centros de custo não disponíveis:', error);
-    }
-    
-    try {
-      await carregarEquipamentos();
-    } catch (error) {
-      console.warn('Equipamentos não disponíveis:', error);
-      setLoading(false);
-    }
+    await carregarCentrosCusto();
+    await carregarEquipamentos();
   };
 
   const carregarEquipamentos = async () => {
@@ -144,52 +141,9 @@ const EquipamentosPage: React.FC = () => {
         setSnackbar({ open: true, message: 'Erro ao carregar equipamentos', severity: 'error' });
       }
     } catch (error) {
-      console.warn('API de equipamentos não disponível, usando dados mockados');
-      // Dados mockados para demonstração
-      setEquipamentos([
-        {
-          equipamento_id: 1,
-          nome: "TRATOR DE ESTEIRA CATERPILLER D6R",
-          codigo_ativo: "01.01.0004",
-          categoria: "Trator de Esteira",
-          categoria_id: 1,
-          horimetro_atual: 6662,
-          km_atual: undefined,
-          status_equipamento: "ativo" as const,
-          horas_para_vencer: -231,
-          alerta_manutencao: true,
-          ultima_revisao_horimetro: 6893,
-          proxima_revisao_horimetro: 7143,
-          data_ultima_leitura: "2025-08-19",
-          intervalo_manutencao: 250,
-          observacoes: "Equipamento em operação",
-          centros_custo: [
-            {
-              centro_custo_id: 1,
-              nome: "Obra ABC",
-              data_associacao: "2024-01-15"
-            }
-          ]
-        },
-        {
-          equipamento_id: 2,
-          nome: "ESCAVADEIRA CAT 320D",
-          codigo_ativo: "02.01.0001",
-          categoria: "Escavadeira",
-          categoria_id: 2,
-          horimetro_atual: 4500,
-          km_atual: undefined,
-          status_equipamento: "ativo" as const,
-          horas_para_vencer: 100,
-          alerta_manutencao: false,
-          ultima_revisao_horimetro: 4400,
-          proxima_revisao_horimetro: 4650,
-          data_ultima_leitura: "2025-09-10",
-          intervalo_manutencao: 250,
-          observacoes: "Equipamento em bom estado",
-          centros_custo: []
-        }
-      ]);
+      console.error('Erro ao carregar equipamentos:', error);
+      setSnackbar({ open: true, message: 'Erro ao carregar equipamentos da API', severity: 'error' });
+      setEquipamentos([]); // Lista vazia em caso de erro
     } finally {
       setLoading(false);
     }
@@ -221,22 +175,15 @@ const EquipamentosPage: React.FC = () => {
   };
 
   const carregarCategorias = async () => {
-    try {
-      const data = await categoriaEquipamentoService.getAll();
-      setCategorias(data);
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
-      setSnackbar({ open: true, message: 'Erro ao carregar categorias', severity: 'error' });
-      // Fallback para dados mockados em caso de erro
-      setCategorias([
-        { categoria_id: 1, nome: 'Trator de Esteira', descricao: '', criado_em: '' },
-        { categoria_id: 2, nome: 'Escavadeira', descricao: '', criado_em: '' },
-        { categoria_id: 3, nome: 'Caminhão', descricao: '', criado_em: '' },
-        { categoria_id: 4, nome: 'Retroescavadeira', descricao: '', criado_em: '' },
-        { categoria_id: 5, nome: 'Motoniveladora', descricao: '', criado_em: '' },
-        { categoria_id: 6, nome: 'Rolo Compactador', descricao: '', criado_em: '' }
-      ]);
-    }
+    // Dados mockados para categorias até a API estar disponível
+    setCategorias([
+      { categoria_id: 1, nome: 'Trator de Esteira', criado_em: '2024-01-01T00:00:00Z' },
+      { categoria_id: 2, nome: 'Escavadeira', criado_em: '2024-01-01T00:00:00Z' },
+      { categoria_id: 3, nome: 'Caminhão', criado_em: '2024-01-01T00:00:00Z' },
+      { categoria_id: 4, nome: 'Retroescavadeira', criado_em: '2024-01-01T00:00:00Z' },
+      { categoria_id: 5, nome: 'Motoniveladora', criado_em: '2024-01-01T00:00:00Z' },
+      { categoria_id: 6, nome: 'Rolo Compactador', criado_em: '2024-01-01T00:00:00Z' }
+    ]);
   };
 
   const handleOpen = () => {
@@ -441,6 +388,53 @@ const EquipamentosPage: React.FC = () => {
     setDataAssociacao(new Date().toISOString().split('T')[0]);
     setObservacoesAssociacao('');
     setAssociacaoModalOpen(true);
+  };
+
+  const abrirModalVisualizacao = async (equipamento: Equipamento) => {
+    setLoading(true);
+    setEquipamentoDetalhes(null);
+    
+    try {
+      console.log('Carregando equipamento:', equipamento.equipamento_id);
+      const equipamentoCompleto = await equipamentosService.getById(equipamento.equipamento_id);
+      
+      console.log('Dados recebidos da API:', equipamentoCompleto);
+      
+      // Validar se os dados essenciais estão presentes
+      if (!equipamentoCompleto || !equipamentoCompleto.equipamento_id) {
+        throw new Error('Dados do equipamento inválidos');
+      }
+      
+      // Garantir que status_equipamento sempre tenha um valor válido
+      const equipamentoValidado = {
+        ...equipamentoCompleto,
+        status_equipamento: equipamentoCompleto.status_equipamento || 'ativo',
+        nome: equipamentoCompleto.nome || 'Nome não informado',
+        codigo_ativo: equipamentoCompleto.codigo_ativo || 'Código não informado',
+        categoria: equipamentoCompleto.categoria || 'Categoria não informada',
+        horimetro_atual: equipamentoCompleto.horimetro_atual || 0,
+        horas_para_vencer: equipamentoCompleto.horas_para_vencer || 0,
+        alerta_manutencao: equipamentoCompleto.alerta_manutencao || false,
+        centros_custo: equipamentoCompleto.centros_custo || []
+      };
+      
+      setEquipamentoDetalhes(equipamentoValidado);
+      setViewModalOpen(true);
+    } catch (error) {
+      console.error('Erro ao carregar detalhes do equipamento:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Erro ao carregar detalhes do equipamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fecharModalVisualizacao = () => {
+    setViewModalOpen(false);
+    setEquipamentoDetalhes(null);
   };
 
   const associarCentroCusto = async () => {
@@ -843,7 +837,7 @@ const EquipamentosPage: React.FC = () => {
                     </Tooltip>
                     
                     <Tooltip title="Visualizar detalhes">
-                      <IconButton onClick={() => {}} color="info" size="small">
+                      <IconButton onClick={() => abrirModalVisualizacao(equipamento)} color="info" size="small">
                         <Visibility />
                       </IconButton>
                     </Tooltip>
@@ -1167,6 +1161,307 @@ const EquipamentosPage: React.FC = () => {
             disabled={loading || !centroCustoAssociacao}
           >
             {loading ? 'Associando...' : 'Associar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Visualização de Equipamento */}
+      <Dialog open={viewModalOpen} onClose={fecharModalVisualizacao} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Box display="flex" alignItems="center" gap={1}>
+              <Visibility color="info" />
+              <Typography variant="h6">
+                {equipamentoDetalhes ? `${equipamentoDetalhes.nome}` : 'Detalhes do Equipamento'}
+              </Typography>
+            </Box>
+            {equipamentoDetalhes && equipamentoDetalhes.status_equipamento && (
+              <Chip
+                size="small"
+                label={equipamentoDetalhes.status_equipamento.toUpperCase()}
+                color={
+                  equipamentoDetalhes.status_equipamento === 'ativo' ? 'success' :
+                  equipamentoDetalhes.status_equipamento === 'manutencao' ? 'warning' : 'error'
+                }
+                variant="outlined"
+              />
+            )}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {equipamentoDetalhes ? (
+            <Box sx={{ mt: 1 }}>
+              {/* Informações principais */}
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: 2,
+                mb: 3,
+                p: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1
+              }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                    CÓDIGO DO ATIVO
+                  </Typography>
+                  <Typography variant="h6" color="primary" sx={{ mt: 0.5 }}>
+                    {equipamentoDetalhes.codigo_ativo}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                    CATEGORIA
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium" color="text.primary" sx={{ mt: 0.5 }}>
+                    {equipamentoDetalhes.categorias_equipamentos?.nome || equipamentoDetalhes.categoria}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                    HORÍMETRO ATUAL
+                  </Typography>
+                  <Typography variant="h6" color="info.main" sx={{ mt: 0.5 }}>
+                    {(equipamentoDetalhes.horimetro_atual || 0).toLocaleString()} h
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                    STATUS MANUTENÇÃO
+                  </Typography>
+                  <Box sx={{ mt: 1 }}>
+                    <Chip
+                      size="small"
+                      icon={equipamentoDetalhes.alerta_manutencao ? <Warning /> : undefined}
+                      label={equipamentoDetalhes.alerta_manutencao ? 'ATENÇÃO' : 'OK'}
+                      color={equipamentoDetalhes.alerta_manutencao ? 'error' : 'success'}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 2 }}>
+                {/* Card de Informações Operacionais */}
+                <Paper sx={{ p: 2, border: '1px solid', borderColor: 'primary.light' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Speed color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="h6" color="primary">
+                      Informações Operacionais
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Horímetro Atual:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {equipamentoDetalhes.horimetro_atual?.toLocaleString()} horas
+                      </Typography>
+                    </Box>
+                    
+                    {equipamentoDetalhes.km_atual && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Quilometragem Atual:
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {equipamentoDetalhes.km_atual?.toLocaleString()} km
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Última Leitura:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {equipamentoDetalhes.data_ultima_leitura ? 
+                          new Date(equipamentoDetalhes.data_ultima_leitura).toLocaleDateString('pt-BR') : 
+                          'Não registrada'
+                        }
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Horas para Manutenção:
+                      </Typography>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold"
+                          color={equipamentoDetalhes.horas_para_vencer < 0 ? 'error' : 
+                                 equipamentoDetalhes.horas_para_vencer <= 50 ? 'warning.main' : 'success.main'}
+                        >
+                          {equipamentoDetalhes.horas_para_vencer} h
+                        </Typography>
+                        {equipamentoDetalhes.horas_para_vencer < 0 && (
+                          <Typography variant="caption" color="error">
+                            VENCIDA
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </Box>
+                </Paper>
+
+                {/* Card de Manutenção */}
+                <Paper sx={{ p: 2, border: '1px solid', borderColor: 'warning.light' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Build color="warning" sx={{ mr: 1 }} />
+                    <Typography variant="h6" color="warning.main">
+                      Controle de Manutenção
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Intervalo de Manutenção:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {equipamentoDetalhes.intervalo_manutencao ? 
+                          `${equipamentoDetalhes.intervalo_manutencao} horas` : 
+                          'Não definido'
+                        }
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Última Revisão:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {equipamentoDetalhes.ultima_revisao_horimetro ? 
+                          `${equipamentoDetalhes.ultima_revisao_horimetro.toLocaleString()} h` : 
+                          'Não registrada'
+                        }
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Data da Última Revisão:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {equipamentoDetalhes.ultima_revisao_data ? 
+                          new Date(equipamentoDetalhes.ultima_revisao_data).toLocaleDateString('pt-BR') : 
+                          'Não registrada'
+                        }
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Próxima Revisão:
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {equipamentoDetalhes.proxima_revisao_horimetro ? 
+                          `${equipamentoDetalhes.proxima_revisao_horimetro.toLocaleString()} h` : 
+                          'Não calculada'
+                        }
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+
+                {/* Card de Categoria e Observações */}
+                {(equipamentoDetalhes.categorias_equipamentos?.descricao || equipamentoDetalhes.observacoes) && (
+                  <Paper sx={{ p: 2, border: '1px solid', borderColor: 'info.light', gridColumn: '1 / -1' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Construction color="info" sx={{ mr: 1 }} />
+                      <Typography variant="h6" color="info.main">
+                        Informações Adicionais
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 2 }}>
+                      {equipamentoDetalhes.categorias_equipamentos?.descricao && (
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Descrição da Categoria:
+                          </Typography>
+                          <Typography variant="body1">
+                            {equipamentoDetalhes.categorias_equipamentos.descricao}
+                          </Typography>
+                        </Box>
+                      )}
+                      {equipamentoDetalhes.observacoes && (
+                        <Box>
+                          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Observações:
+                          </Typography>
+                          <Typography variant="body1">
+                            {equipamentoDetalhes.observacoes}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Paper>
+                )}
+
+                {/* Card de Centros de Custo */}
+                {equipamentoDetalhes.centros_custo && equipamentoDetalhes.centros_custo.length > 0 && (
+                  <Paper sx={{ p: 2, border: '1px solid', borderColor: 'success.light', gridColumn: '1 / -1' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Link color="success" sx={{ mr: 1 }} />
+                      <Typography variant="h6" color="success.main">
+                        Centros de Custo Associados ({equipamentoDetalhes.centros_custo.length})
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                      {equipamentoDetalhes.centros_custo.map((centro, index) => (
+                        <Box 
+                          key={index} 
+                          sx={{ 
+                            p: 2, 
+                            border: 1, 
+                            borderColor: 'success.light', 
+                            borderRadius: 2,
+                            backgroundColor: 'success.50'
+                          }}
+                        >
+                          <Typography variant="body1" fontWeight="medium" color="success.dark">
+                            {centro.nome}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Associado desde: {new Date(centro.data_associacao).toLocaleDateString('pt-BR')}
+                          </Typography>
+                          {centro.associacao_ativa !== undefined && (
+                            <Box sx={{ mt: 1 }}>
+                              <Chip
+                                size="small"
+                                label={centro.associacao_ativa ? 'Ativa' : 'Inativa'}
+                                color={centro.associacao_ativa ? 'success' : 'default'}
+                                variant="outlined"
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Paper>
+                )}
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Speed sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  Carregando detalhes do equipamento...
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button 
+            onClick={fecharModalVisualizacao} 
+            variant="contained" 
+            size="large"
+            sx={{ minWidth: 120 }}
+          >
+            Fechar
           </Button>
         </DialogActions>
       </Dialog>
