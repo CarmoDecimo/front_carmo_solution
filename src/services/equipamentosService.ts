@@ -7,6 +7,7 @@ export interface Equipamento {
   codigo_ativo: string;
   categoria: string;
   categoria_id: number;
+  centro_custo_id?: number; // Campo direto do centro de custo
   horimetro_atual: number;
   km_atual?: number;
   status_equipamento: 'ativo' | 'manutencao' | 'parado';
@@ -18,7 +19,7 @@ export interface Equipamento {
   ultima_revisao_data?: string;
   intervalo_manutencao: number;
   observacoes?: string;
-  centros_custo: Array<{
+  centros_custo?: Array<{ // Mantido para compatibilidade
     centro_custo_id: number;
     nome: string;
     data_associacao: string;
@@ -115,14 +116,37 @@ export const equipamentosService = {
   // Buscar equipamento por ID
   getById: async (id: number): Promise<Equipamento> => {
     try {
-      const response = await api.get<{ success: boolean; data: Equipamento }>(`/api/equipamentos/${id}`);
-      if (response.success && response.data) {
+      console.log('🔍 Fazendo requisição para equipamento ID:', id);
+      console.log('🌐 URL completa:', `/api/equipamentos/${id}`);
+      
+      const response = await api.get<any>(`/api/equipamentos/${id}`);
+      
+      console.log('📡 Resposta recebida da API:', response);
+      console.log('📊 Tipo da resposta:', typeof response);
+      console.log('🔑 Chaves da resposta:', Object.keys(response || {}));
+      
+      // Verificar se a resposta tem o formato { success: true, data: ... }
+      if (response && response.success && response.data) {
+        console.log('✅ Formato com success/data detectado');
         return response.data;
-      } else {
-        throw new Error('Equipamento não encontrado ou dados inválidos');
+      }
+      // Verificar se a resposta é diretamente o equipamento
+      else if (response && response.equipamento_id) {
+        console.log('✅ Formato direto de equipamento detectado');
+        return response;
+      }
+      // Se não conseguir determinar o formato
+      else {
+        console.error('❌ Formato de resposta não reconhecido:', response);
+        throw new Error(`Formato de resposta inválido. Recebido: ${JSON.stringify(response)}`);
       }
     } catch (error) {
-      console.error('Erro no getById do equipamentosService:', error);
+      console.error('💥 Erro no getById do equipamentosService:', error);
+      console.error('🔍 Detalhes do erro:', {
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined,
+        id: id
+      });
       throw error;
     }
   },

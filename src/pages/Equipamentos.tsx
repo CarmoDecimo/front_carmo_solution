@@ -464,10 +464,23 @@ const EquipamentosPage: React.FC = () => {
       setEquipamentoDetalhes(equipamentoValidado);
       setViewModalOpen(true);
     } catch (error) {
-      console.error('Erro ao carregar detalhes do equipamento:', error);
+      console.error('💥 Erro ao carregar detalhes do equipamento:', error);
+      
+      let errorMessage = 'Erro desconhecido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Se for erro 500, dar uma mensagem mais específica
+      if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
+        errorMessage = `Erro interno do servidor ao buscar equipamento ID ${equipamento.equipamento_id}. Verifique se o equipamento existe no banco de dados.`;
+      }
+      
+      console.error('📝 Mensagem de erro para o usuário:', errorMessage);
+      
       setSnackbar({ 
         open: true, 
-        message: `Erro ao carregar detalhes do equipamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        message: `Erro ao carregar detalhes do equipamento: ${errorMessage}`, 
         severity: 'error' 
       });
     } finally {

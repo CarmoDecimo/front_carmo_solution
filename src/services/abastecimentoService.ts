@@ -2,12 +2,38 @@ import { api } from './api';
 
 // Interfaces para Centro de Custo
 export interface CentroCusto {
-  id: string;
+  id?: string; // Para compatibilidade com lista
+  centro_custo_id?: number; // Para detalhes da API
   codigo: string;
   nome: string;
   descricao?: string;
+  responsavel?: string;
+  localizacao?: string;
   ativo: boolean;
   created_at: string;
+  updated_at?: string;
+  criado_em?: string;
+  orcamento_anual?: number;
+  categorias?: Array<{
+    categoria_id: number;
+    nome: string;
+    descricao: string;
+    criado_em: string;
+  }>;
+  veiculos?: Array<{ count: number }>;
+  abastecimentos?: Array<{ count: number }>;
+  total_equipamentos?: number;
+  equipamentos_com_alerta?: number;
+  total_abastecimentos_mes?: number;
+  custo_combustivel_mes?: number;
+  equipamentos?: Array<{
+    equipamento_id: number;
+    nome: string;
+    codigo_ativo: string;
+    status_equipamento: string;
+    alerta_manutencao: boolean;
+    data_associacao: string;
+  }>;
 }
 
 // Interfaces para Abastecimento
@@ -68,7 +94,8 @@ export const centroCustoService = {
 
   // Obter centro de custo por ID
   getById: async (id: string): Promise<CentroCusto> => {
-    return api.get<CentroCusto>(`/api/centros-custo/${id}`);
+    const response = await api.get<{ success: boolean; data: CentroCusto }>(`/api/centros-custo/${id}`);
+    return response.data;
   },
 };
 
