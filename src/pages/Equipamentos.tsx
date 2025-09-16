@@ -706,17 +706,6 @@ const EquipamentosPage: React.FC = () => {
                   backgroundColor: 'transparent',
                   py: 2,
                   textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                  minWidth: 130
-                }}>
-                  Categoria
-                </TableCell>
-                <TableCell sx={{ 
-                  color: 'white', 
-                  fontWeight: 'bold', 
-                  fontSize: '0.95rem',
-                  backgroundColor: 'transparent',
-                  py: 2,
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
                   minWidth: 120
                 }}>
                   Horímetro Atual
@@ -781,7 +770,6 @@ const EquipamentosPage: React.FC = () => {
                   </Box>
                 </TableCell>
                 <TableCell>{equipamento.codigo_ativo}</TableCell>
-                <TableCell>{equipamento.categoria}</TableCell>
                 <TableCell>
                   <Box>
                     <Typography variant="body2" fontWeight="medium">
