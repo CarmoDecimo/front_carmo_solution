@@ -31,9 +31,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ptBR } from 'date-fns/locale';
 import { preencherTemplateAbastecimento, calcularExistenciaFinal } from '../templates/abastecimento/abastecimento-template';
-import { abastecimentoService, ApiException } from '../services';
+import { abastecimentoService, ApiException, API_BASE_URL } from '../services';
 // import { centroCustoService } from '../services'; // TODO: Usar quando API estiver implementada
-import type { CentroCusto, CreateAbastecimentoRequest } from '../services';
+import type { CreateAbastecimentoRequest, Equipamento } from '../services';
 
 // Tipos para os dados do abastecimento
 interface AbastecimentoLinha {
@@ -49,6 +49,7 @@ interface AbastecimentoLinha {
 function Abastecimento() {
   const [cabecalho, setCabecalho] = useState({
     centroCusto: '',
+    centroCustoNome: '', // Novo campo para armazenar o nome do centro de custo
     data: new Date(),
     existenciaInicio: '',
     entradaCombustivel: '',
@@ -66,6 +67,7 @@ function Abastecimento() {
     kmh: null,
     assinatura: ''
   });
+  const [equipamentoSelecionado, setEquipamentoSelecionado] = useState<number | ''>('');
 
   const [rodape, setRodape] = useState({
     existenciaFim: '',
@@ -73,73 +75,45 @@ function Abastecimento() {
   });
 
   const [linhas, setLinhas] = useState<AbastecimentoLinha[]>([]);
-  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
+  const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  // Carregar centros de custo ao montar o componente
+  // Carregar equipamentos ao montar o componente
   useEffect(() => {
-    fetchCentrosCusto();
+    fetchEquipamentos();
   }, []);
 
-  // Buscar centros de custo
-  const fetchCentrosCusto = async () => {
-    // Usar dados simulados enquanto a API não estiver implementada
-    setCentrosCusto([
-      {
-        id: 'cc_001',
-        codigo: 'CC001',
-        nome: 'Operações Mina',
-        descricao: 'Centro de custo para operações de mineração',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_002',
-        codigo: 'CC002',
-        nome: 'Manutenção',
-        descricao: 'Centro de custo para atividades de manutenção',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_003',
-        codigo: 'CC003',
-        nome: 'Transporte',
-        descricao: 'Centro de custo para atividades de transporte',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_004',
-        codigo: 'CC004',
-        nome: 'Logística',
-        descricao: 'Centro de custo para atividades de logística',
-        ativo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cc_005',
-        codigo: 'CC005',
-        nome: 'Administração',
-        descricao: 'Centro de custo para atividades administrativas',
-        ativo: true,
-        created_at: new Date().toISOString()
-      }
-    ]);
-
-    // TODO: Implementar quando a API estiver disponível
-    /*
+  // Buscar equipamentos
+  const fetchEquipamentos = async () => {
+    setLoading(true);
     try {
-      const centros = await centroCustoService.getAtivos();
-      setCentrosCusto(centros);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/equipamentos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setEquipamentos(result.data);
+      } else {
+        setError('Erro ao carregar equipamentos');
+        setOpenSnackbar(true);
+        setEquipamentos([]); // Lista vazia em caso de erro
+      }
     } catch (error) {
-      console.error('Erro ao carregar centros de custo:', error);
-      // Fallback para dados simulados
+      console.error('Erro ao carregar equipamentos:', error);
+      setError('Erro ao carregar equipamentos da API');
+      setOpenSnackbar(true);
+      setEquipamentos([]); // Lista vazia em caso de erro
+    } finally {
+      setLoading(false);
     }
-    */
   };
 
   // Handler para campos do cabeçalho
@@ -156,6 +130,46 @@ function Abastecimento() {
       ...linhaAtual,
       [field]: value
     });
+  };
+
+  // Handler para seleção de equipamento
+  const handleEquipamentoChange = (equipamentoId: number | string) => {
+    const id = equipamentoId === '' ? '' : Number(equipamentoId);
+    setEquipamentoSelecionado(id);
+    
+    if (id) {
+      const equipamento = equipamentos.find(eq => eq.equipamento_id === id);
+      if (equipamento) {
+        // Preencher os campos com os dados do equipamento selecionado
+        setLinhaAtual({
+          ...linhaAtual,
+          equipamento: equipamento.nome,
+          activo: equipamento.codigo_ativo,
+          matricula: equipamento.codigo_ativo // Usando código ativo como matrícula por padrão
+        });
+        
+        // Auto-preencher o centro de custo se o equipamento tiver um
+        if (equipamento.centros_custo && equipamento.centros_custo.length > 0) {
+          const centroCustoAtivo = equipamento.centros_custo.find(cc => cc.associacao_ativa);
+          if (centroCustoAtivo) {
+            // Preencher diretamente com os dados do centro de custo do equipamento
+            handleCabecalhoChange('centroCusto', centroCustoAtivo.centro_custo_id.toString());
+            handleCabecalhoChange('centroCustoNome', centroCustoAtivo.nome);
+          }
+        }
+      }
+    } else {
+      // Limpar campos se nenhum equipamento for selecionado
+      setLinhaAtual({
+        ...linhaAtual,
+        equipamento: '',
+        activo: '',
+        matricula: ''
+      });
+      // Limpar também o centro de custo
+      handleCabecalhoChange('centroCusto', '');
+      handleCabecalhoChange('centroCustoNome', '');
+    }
   };
 
   // Handler para campos do rodapé
@@ -192,6 +206,7 @@ function Abastecimento() {
       kmh: null,
       assinatura: ''
     });
+    setEquipamentoSelecionado('');
   };
 
   // Remover linha da tabela
@@ -204,6 +219,7 @@ function Abastecimento() {
     if (window.confirm('Tem certeza que deseja limpar todos os dados?')) {
       setCabecalho({
         centroCusto: '',
+        centroCustoNome: '',
         data: new Date(),
         existenciaInicio: '',
         entradaCombustivel: '',
@@ -225,6 +241,7 @@ function Abastecimento() {
         kmh: null,
         assinatura: ''
       });
+      setEquipamentoSelecionado('');
     }
   };
 
@@ -472,13 +489,32 @@ function Abastecimento() {
             </Typography>
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-                <TextField
-                  label="Equipamento"
-                  value={linhaAtual.equipamento}
-                  onChange={(e) => handleLinhaChange('equipamento', e.target.value)}
-                  fullWidth
-                  size="small"
-                />
+                <FormControl fullWidth size="small">
+                  <InputLabel>Equipamento</InputLabel>
+                  <Select
+                    value={equipamentoSelecionado}
+                    label="Equipamento"
+                    onChange={(e) => handleEquipamentoChange(e.target.value)}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                        Carregando equipamentos...
+                      </MenuItem>
+                    ) : equipamentos.length === 0 ? (
+                      <MenuItem disabled>
+                        Nenhum equipamento disponível
+                      </MenuItem>
+                    ) : (
+                      equipamentos.map((equipamento) => (
+                        <MenuItem key={equipamento.equipamento_id} value={equipamento.equipamento_id}>
+                          {equipamento.nome} ({equipamento.codigo_ativo})
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                </FormControl>
                 <TextField
                   label="Ativo"
                   value={linhaAtual.activo}
@@ -603,20 +639,13 @@ function Abastecimento() {
                 />
               </Stack>
               
-              <FormControl fullWidth required>
-                <InputLabel>Centro de Custo</InputLabel>
-                <Select
-                  value={cabecalho.centroCusto}
-                  label="Centro de Custo"
-                  onChange={(e) => handleCabecalhoChange('centroCusto', e.target.value)}
-                >
-                  {centrosCusto.map((centro) => (
-                    <MenuItem key={centro.id} value={centro.id}>
-                      {centro.codigo} - {centro.nome}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                label="Centro de Custo"
+                value={cabecalho.centroCustoNome || 'Selecione um equipamento para preencher automaticamente'}
+                fullWidth
+                disabled
+                helperText="Este campo é preenchido automaticamente baseado no equipamento selecionado"
+              />
             </Stack>
           </CardContent>
         </Card>
