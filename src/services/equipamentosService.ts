@@ -160,12 +160,16 @@ export const equipamentosService = {
 
   // Associar equipamento a centro de custo
   associarCentroCusto: async (equipamentoId: number, data: AssociarCentroCustoRequest): Promise<void> => {
-    return api.post(`/api/equipamentos/${equipamentoId}/centro-custo`, data);
+    return api.put(`/api/equipamentos/${equipamentoId}`, {
+      centro_custo_id: data.centro_custo_id
+    });
   },
 
   // Remover associação equipamento-centro de custo
-  removerAssociacao: async (equipamentoId: number, centroCustoId: number): Promise<void> => {
-    return api.delete(`/api/equipamentos/${equipamentoId}/centro-custo/${centroCustoId}`);
+  removerAssociacao: async (equipamentoId: number): Promise<void> => {
+    return api.put(`/api/equipamentos/${equipamentoId}`, {
+      centro_custo_id: null
+    });
   },
 
   // Equipamentos com alerta de manutenção

@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Typography,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Table,
   TableBody,
   TableCell,
@@ -14,234 +10,189 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   IconButton,
-  Typography,
-  Chip,
-  Alert,
   Snackbar,
-  CircularProgress,
-  InputAdornment,
-  TablePagination,
-  Tooltip,
+  Alert,
+  InputAdornment
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
-  Category as CategoryIcon,
+  Category as CategoryIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { categoriaEquipamentoService } from '../services';
 import type { Categoria, CreateCategoriaRequest, UpdateCategoriaRequest } from '../services';
-
-interface FormData {
-  nome: string;
-  descricao: string;
-}
 
 const GestaoCategorias: React.FC = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    nome: '',
-    descricao: '',
-  });
-  const [formErrors, setFormErrors] = useState<Partial<FormData>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [snackbar, setSnackbar] = useState({
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error',
+    severity: 'info'
   });
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  useEffect(() => {
-    loadCategorias();
-  }, []);
+  // Form state
+  const [formData, setFormData] = useState({
+    nome: '',
+    descricao: ''
+  });
 
-  const loadCategorias = async () => {
+  // Carregar categorias
+  const carregarCategorias = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await categoriaEquipamentoService.getAll();
-      setCategorias(data);
+      const response = await categoriaEquipamentoService.getAll();
+      setCategorias(response);
     } catch (error) {
-      showSnackbar('Erro ao carregar categorias', 'error');
       console.error('Erro ao carregar categorias:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar categorias',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
-  };
+  // Filtrar categorias por termo de busca
+  const categoriasFiltradas = categorias.filter(categoria =>
+    categoria.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (categoria.descricao && categoria.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const validateForm = (): boolean => {
-    const errors: Partial<FormData> = {};
-
-    if (!formData.nome.trim()) {
-      errors.nome = 'Nome é obrigatório';
-    } else if (formData.nome.length < 3) {
-      errors.nome = 'Nome deve ter pelo menos 3 caracteres';
-    }
-
-    if (formData.descricao && formData.descricao.length > 500) {
-      errors.descricao = 'Descrição não pode ter mais de 500 caracteres';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleOpenDialog = (categoria?: Categoria) => {
-    if (categoria) {
-      setEditingCategoria(categoria);
-      setFormData({
-        nome: categoria.nome,
-        descricao: categoria.descricao || '',
-      });
-    } else {
-      setEditingCategoria(null);
-      setFormData({
-        nome: '',
-        descricao: '',
-      });
-    }
-    setFormErrors({});
+  // Abrir dialog para criar nova categoria
+  const handleOpenCreateDialog = () => {
+    setEditingCategoria(null);
+    setFormData({ nome: '', descricao: '' });
     setOpenDialog(true);
   };
 
+  // Abrir dialog para editar categoria
+  const handleOpenEditDialog = (categoria: Categoria) => {
+    setEditingCategoria(categoria);
+    setFormData({
+      nome: categoria.nome,
+      descricao: categoria.descricao || ''
+    });
+    setOpenDialog(true);
+  };
+
+  // Fechar dialog
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingCategoria(null);
-    setFormData({
-      nome: '',
-      descricao: '',
-    });
-    setFormErrors({});
+    setFormData({ nome: '', descricao: '' });
   };
 
-  const handleFormChange = (field: keyof FormData) => (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = event.target.value;
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Limpar erro do campo quando o usuário começar a digitar
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }));
+  // Salvar categoria (criar ou atualizar)
+  const handleSave = async () => {
+    if (!formData.nome.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Nome da categoria é obrigatório',
+        severity: 'warning'
+      });
+      return;
     }
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
 
     try {
-      setLoading(true);
-      
       if (editingCategoria) {
+        // Atualizar categoria existente
         const updateData: UpdateCategoriaRequest = {
-          nome: formData.nome,
-          descricao: formData.descricao || undefined,
+          nome: formData.nome.trim(),
+          descricao: formData.descricao.trim() || undefined
         };
         await categoriaEquipamentoService.update(editingCategoria.categoria_id, updateData);
-        showSnackbar('Categoria atualizada com sucesso!', 'success');
+        setSnackbar({
+          open: true,
+          message: 'Categoria atualizada com sucesso',
+          severity: 'success'
+        });
       } else {
+        // Criar nova categoria
         const createData: CreateCategoriaRequest = {
-          nome: formData.nome,
-          descricao: formData.descricao || undefined,
+          nome: formData.nome.trim(),
+          descricao: formData.descricao.trim() || undefined
         };
         await categoriaEquipamentoService.create(createData);
-        showSnackbar('Categoria criada com sucesso!', 'success');
+        setSnackbar({
+          open: true,
+          message: 'Categoria criada com sucesso',
+          severity: 'success'
+        });
       }
-      
+
       handleCloseDialog();
-      loadCategorias();
+      carregarCategorias();
     } catch (error) {
       console.error('Erro ao salvar categoria:', error);
-      showSnackbar(
-        editingCategoria ? 'Erro ao atualizar categoria' : 'Erro ao criar categoria',
-        'error'
-      );
-    } finally {
-      setLoading(false);
+      setSnackbar({
+        open: true,
+        message: editingCategoria ? 'Erro ao atualizar categoria' : 'Erro ao criar categoria',
+        severity: 'error'
+      });
     }
   };
 
+  // Deletar categoria
   const handleDelete = async (categoria: Categoria) => {
     if (!window.confirm(`Tem certeza que deseja excluir a categoria "${categoria.nome}"?`)) {
       return;
     }
 
     try {
-      setLoading(true);
       await categoriaEquipamentoService.delete(categoria.categoria_id);
-      showSnackbar('Categoria excluída com sucesso!', 'success');
-      loadCategorias();
+      setSnackbar({
+        open: true,
+        message: 'Categoria excluída com sucesso',
+        severity: 'success'
+      });
+      carregarCategorias();
     } catch (error) {
       console.error('Erro ao excluir categoria:', error);
-      showSnackbar('Erro ao excluir categoria', 'error');
-    } finally {
-      setLoading(false);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao excluir categoria',
+        severity: 'error'
+      });
     }
   };
 
-  // Filtrar categorias baseado no termo de busca
-  const filteredCategorias = categorias.filter(categoria =>
-    categoria.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (categoria.descricao && categoria.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  // Paginação
-  const paginatedCategorias = filteredCategorias.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
-
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  // Carregar dados ao montar componente
+  useEffect(() => {
+    carregarCategorias();
+  }, []);
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CategoryIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-            Gestão de Categorias de Equipamentos
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ borderRadius: 2 }}
-        >
-          Nova Categoria
-        </Button>
-      </Box>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <CategoryIcon color="primary" />
+        Gestão de Categorias de Equipamentos
+      </Typography>
 
-      {/* Filtros */}
-      <Box sx={{ mb: 3 }}>
+      {/* Cards de Estatísticas - Temporariamente removidos para compatibilidade */}
+      {/* TODO: Reimplementar cards quando Grid for corrigido */}
+
+      {/* Barra de Ações */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Buscar por nome ou descrição..."
+          placeholder="Buscar categorias..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -251,156 +202,111 @@ const GestaoCategorias: React.FC = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ maxWidth: 400 }}
+          sx={{ width: 300 }}
         />
+
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleOpenCreateDialog}
+        >
+          Nova Categoria
+        </Button>
       </Box>
 
-      {/* Tabela */}
-      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'primary.main' }}>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nome</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Descrição</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Data de Criação</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
-                  Ações
+      {/* Tabela de Categorias */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Nome</TableCell>
+              <TableCell>Descrição</TableCell>
+              <TableCell>Data de Criação</TableCell>
+              <TableCell align="center">Ações</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  Carregando...
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading && paginatedCategorias.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
-                    <CircularProgress />
+            ) : categoriasFiltradas.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  {searchTerm ? 'Nenhuma categoria encontrada' : 'Nenhuma categoria cadastrada'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              categoriasFiltradas.map((categoria) => (
+                <TableRow key={categoria.categoria_id} hover>
+                  <TableCell>{categoria.categoria_id}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CategoryIcon color="action" />
+                      {categoria.nome}
+                    </Box>
+                  </TableCell>
+                  <TableCell>{categoria.descricao || '-'}</TableCell>
+                  <TableCell>
+                    {new Date(categoria.criado_em).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleOpenEditDialog(categoria)}
+                      size="small"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDelete(categoria)}
+                      size="small"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
-              ) : paginatedCategorias.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      {searchTerm ? 'Nenhuma categoria encontrada' : 'Nenhuma categoria cadastrada'}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedCategorias.map((categoria) => (
-                  <TableRow key={categoria.categoria_id} hover>
-                    <TableCell>
-                      <Chip
-                        label={categoria.nome}
-                        variant="outlined"
-                        color="primary"
-                        sx={{ fontWeight: 'medium' }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {categoria.descricao ? (
-                        <Typography variant="body2" sx={{ maxWidth: 300 }}>
-                          {categoria.descricao}
-                        </Typography>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Sem descrição
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {format(new Date(categoria.criado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'center' }}>
-                      <Tooltip title="Editar categoria">
-                        <IconButton
-                          color="primary"
-                          onClick={() => handleOpenDialog(categoria)}
-                          sx={{ mr: 1 }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Excluir categoria">
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(categoria)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <TablePagination
-          component="div"
-          count={filteredCategorias.length}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Linhas por página:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
-          }
-        />
-      </Paper>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {/* Dialog para criar/editar categoria */}
-      <Dialog 
-        open={openDialog} 
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
-      >
+      {/* Dialog para Criar/Editar Categoria */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editingCategoria ? 'Editar Categoria' : 'Nova Categoria'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="Nome da Categoria"
-              value={formData.nome}
-              onChange={handleFormChange('nome')}
-              error={!!formErrors.nome}
-              helperText={formErrors.nome}
-              required
-              sx={{ mb: 3 }}
-            />
-            
-            <TextField
-              fullWidth
-              label="Descrição"
-              value={formData.descricao}
-              onChange={handleFormChange('descricao')}
-              error={!!formErrors.descricao}
-              helperText={formErrors.descricao}
-              multiline
-              rows={3}
-              placeholder="Descrição opcional da categoria..."
-            />
-          </Box>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Nome da Categoria"
+            fullWidth
+            variant="outlined"
+            value={formData.nome}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          <TextField
+            margin="dense"
+            label="Descrição (opcional)"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={3}
+            value={formData.descricao}
+            onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+          />
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseDialog}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleSubmit}
-            disabled={loading}
-            sx={{ borderRadius: 2 }}
-          >
-            {loading ? <CircularProgress size={20} /> : (editingCategoria ? 'Atualizar' : 'Criar')}
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleSave} variant="contained">
+            {editingCategoria ? 'Atualizar' : 'Criar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -409,11 +315,10 @@ const GestaoCategorias: React.FC = () => {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

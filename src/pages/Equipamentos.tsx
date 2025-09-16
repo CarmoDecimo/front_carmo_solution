@@ -30,12 +30,11 @@ interface Equipamento {
   ultima_revisao_data?: string;
   intervalo_manutencao?: number;
   observacoes?: string;
-  centros_custo: Array<{
+  centros_custo: {
     centro_custo_id: number;
     nome: string;
-    data_associacao: string;
-    associacao_ativa?: boolean;
-  }>;
+    codigo: string;
+  } | null;
   categorias_equipamentos?: {
     categoria_id: number;
     nome: string;
@@ -206,11 +205,6 @@ const EquipamentosPage: React.FC = () => {
         { categoria_id: 6, nome: 'Rolo Compactador', criado_em: '2024-01-01T00:00:00Z' }
       ]);
     }
-  };
-
-  // Função para recarregar categorias explicitamente (útil após criar/editar categoria)
-  const refreshCategorias = async () => {
-    await carregarCategorias();
   };
 
   const handleOpen = () => {
@@ -433,6 +427,28 @@ const EquipamentosPage: React.FC = () => {
       }
       
       // Garantir que status_equipamento sempre tenha um valor válido
+      let centrosCustoTransformado: { centro_custo_id: number; nome: string; codigo: string } | null = null;
+
+      if (equipamentoCompleto.centros_custo) {
+        if (Array.isArray(equipamentoCompleto.centros_custo) && equipamentoCompleto.centros_custo.length > 0) {
+          // Se for array, pegar o primeiro item
+          const centro = equipamentoCompleto.centros_custo[0];
+          centrosCustoTransformado = {
+            centro_custo_id: centro.centro_custo_id,
+            nome: centro.nome,
+            codigo: (centro as any).codigo || 'N/A'
+          };
+        } else if (!Array.isArray(equipamentoCompleto.centros_custo)) {
+          // Se for objeto único
+          const centro = equipamentoCompleto.centros_custo as any;
+          centrosCustoTransformado = {
+            centro_custo_id: centro.centro_custo_id,
+            nome: centro.nome,
+            codigo: centro.codigo || 'N/A'
+          };
+        }
+      }
+
       const equipamentoValidado = {
         ...equipamentoCompleto,
         status_equipamento: equipamentoCompleto.status_equipamento || 'ativo',
@@ -442,8 +458,8 @@ const EquipamentosPage: React.FC = () => {
         horimetro_atual: equipamentoCompleto.horimetro_atual || 0,
         horas_para_vencer: equipamentoCompleto.horas_para_vencer || 0,
         alerta_manutencao: equipamentoCompleto.alerta_manutencao || false,
-        centros_custo: equipamentoCompleto.centros_custo || []
-      };
+        centros_custo: centrosCustoTransformado
+      } as Equipamento;
       
       setEquipamentoDetalhes(equipamentoValidado);
       setViewModalOpen(true);
@@ -469,59 +485,40 @@ const EquipamentosPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const data = {
-        centro_custo_id: centroCustoAssociacao,
-        data_associacao: dataAssociacao,
-        observacoes: observacoesAssociacao.trim() || undefined
-      };
-
-      const response = await fetch(`http://localhost:3001/api/equipamentos/${equipamentoSelecionado.equipamento_id}/centro-custo`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+      await equipamentosService.associarCentroCusto(equipamentoSelecionado.equipamento_id, {
+        centro_custo_id: centroCustoAssociacao
       });
 
-      const result = await response.json();
-      if (result.success) {
-        setSnackbar({ open: true, message: 'Equipamento associado ao centro de custo!', severity: 'success' });
-        setAssociacaoModalOpen(false);
-        carregarEquipamentos();
-      } else {
-        setSnackbar({ open: true, message: result.message || 'Erro ao associar equipamento', severity: 'error' });
-      }
+      setSnackbar({ open: true, message: 'Equipamento associado ao centro de custo!', severity: 'success' });
+      setAssociacaoModalOpen(false);
+      carregarEquipamentos();
     } catch (error) {
-      setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
+      console.error('Erro ao associar equipamento:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Erro ao associar equipamento',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const removerAssociacao = async (equipamentoId: number, centroCustoId: number) => {
+  const removerAssociacao = async (equipamentoId: number) => {
     if (!window.confirm('Tem certeza que deseja remover esta associação?')) return;
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/equipamentos/${equipamentoId}/centro-custo/${centroCustoId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setSnackbar({ open: true, message: 'Associação removida!', severity: 'success' });
-        carregarEquipamentos();
-      } else {
-        setSnackbar({ open: true, message: result.message || 'Erro ao remover associação', severity: 'error' });
-      }
+      await equipamentosService.removerAssociacao(equipamentoId);
+      setSnackbar({ open: true, message: 'Associação removida!', severity: 'success' });
+      carregarEquipamentos();
     } catch (error) {
-      setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
+      console.error('Erro ao remover associação:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Erro ao remover associação',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -815,17 +812,16 @@ const EquipamentosPage: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(equipamento.centros_custo || []).map(centro => (
-                      <Chip 
-                        key={centro.centro_custo_id}
-                        label={centro.nome}
+                    {equipamento.centros_custo ? (
+                      <Chip
+                        key={equipamento.centros_custo.centro_custo_id}
+                        label={`${equipamento.centros_custo.nome} (${equipamento.centros_custo.codigo})`}
                         size="small"
                         variant="outlined"
-                        onDelete={() => removerAssociacao(equipamento.equipamento_id, centro.centro_custo_id)}
+                        onDelete={() => removerAssociacao(equipamento.equipamento_id)}
                         deleteIcon={<LinkOff />}
                       />
-                    ))}
-                    {(!equipamento.centros_custo || equipamento.centros_custo.length === 0) && (
+                    ) : (
                       <Typography variant="caption" color="textSecondary">
                         Sem associações
                       </Typography>
@@ -1427,44 +1423,34 @@ const EquipamentosPage: React.FC = () => {
                 )}
 
                 {/* Card de Centros de Custo */}
-                {equipamentoDetalhes.centros_custo && equipamentoDetalhes.centros_custo.length > 0 && (
+                {equipamentoDetalhes.centros_custo && (
                   <Paper sx={{ p: 2, border: '1px solid', borderColor: 'success.light', gridColumn: '1 / -1' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Link color="success" sx={{ mr: 1 }} />
                       <Typography variant="h6" color="success.main">
-                        Centros de Custo Associados ({equipamentoDetalhes.centros_custo.length})
+                        Centro de Custo Associado
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
-                      {equipamentoDetalhes.centros_custo.map((centro, index) => (
-                        <Box 
-                          key={index} 
-                          sx={{ 
-                            p: 2, 
-                            border: 1, 
-                            borderColor: 'success.light', 
-                            borderRadius: 2,
-                            backgroundColor: 'success.50'
-                          }}
-                        >
-                          <Typography variant="body1" fontWeight="medium" color="success.dark">
-                            {centro.nome}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Associado desde: {new Date(centro.data_associacao).toLocaleDateString('pt-BR')}
-                          </Typography>
-                          {centro.associacao_ativa !== undefined && (
-                            <Box sx={{ mt: 1 }}>
-                              <Chip
-                                size="small"
-                                label={centro.associacao_ativa ? 'Ativa' : 'Inativa'}
-                                color={centro.associacao_ativa ? 'success' : 'default'}
-                                variant="outlined"
-                              />
-                            </Box>
-                          )}
-                        </Box>
-                      ))}
+                      <Box
+                        sx={{
+                          p: 2,
+                          border: 1,
+                          borderColor: 'success.light',
+                          borderRadius: 2,
+                          backgroundColor: 'success.50'
+                        }}
+                      >
+                        <Typography variant="body1" fontWeight="medium" color="success.dark">
+                          {equipamentoDetalhes.centros_custo.nome}
+                        </Typography>
+                        <Typography variant="body2" color="success.main">
+                          Código: {equipamentoDetalhes.centros_custo.codigo}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          ID: {equipamentoDetalhes.centros_custo.centro_custo_id}
+                        </Typography>
+                      </Box>
                     </Box>
                   </Paper>
                 )}
