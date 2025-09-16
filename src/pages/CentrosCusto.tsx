@@ -21,10 +21,10 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
-  Business as BusinessIcon,
 } from '@mui/icons-material';
 import { centroCustoService } from '../services';
 import type { CentroCusto } from '../services';
@@ -44,10 +44,20 @@ const CentrosCustoPage: React.FC = () => {
     carregarCentrosCusto();
   }, []);
 
+  // Debug do modal
+  useEffect(() => {
+    console.log('=== DEBUG: Modal state changed ===');
+    console.log('viewModalOpen:', viewModalOpen);
+    console.log('centroCustoDetalhes:', centroCustoDetalhes);
+  }, [viewModalOpen, centroCustoDetalhes]);
+
   const carregarCentrosCusto = async () => {
     setLoading(true);
     try {
       const centros = await centroCustoService.getAll();
+      console.log('=== DEBUG: Centros carregados ===');
+      console.log('Centros:', centros);
+      console.log('Primeiro centro:', centros[0]);
       setCentrosCusto(centros);
       
       // Carregar total de equipamentos para cada centro de custo
@@ -97,7 +107,59 @@ const CentrosCustoPage: React.FC = () => {
   };
 
   const handleViewDetails = async (centro: CentroCusto) => {
-    setSelectedCentro(centro);
+    console.log('🔍 === FUNÇÃO handleViewDetails EXECUTADA ===');
+    console.log('📊 Centro recebido:', centro);
+    console.log('🔑 ID do centro:', centro.id || centro.centro_custo_id);
+    console.log('📝 Nome do centro:', centro.nome);
+    
+    alert(`Clique funcionou! Centro: ${centro.nome}`); // Alert para garantir que está funcionando
+    
+    // Testar primeiro se consegue abrir o modal sem chamar a API
+    setCentroCustoDetalhes(centro); // Usar os dados que já temos
+    setViewModalOpen(true);
+    console.log('✅ Modal definido como aberto');
+    
+    return; // Comentar a partir daqui para testar só a abertura do modal
+    
+    /*
+    setLoading(true);
+    setCentroCustoDetalhes(null);
+    
+    try {
+      // Use o ID disponível (pode ser 'id' para lista ou 'centro_custo_id' para detalhes)
+      const centroId = centro.id || centro.centro_custo_id?.toString() || '';
+      console.log('ID a ser usado:', centroId);
+      
+      if (!centroId) {
+        throw new Error('ID do centro de custo não encontrado');
+      }
+      
+      console.log('Chamando API para ID:', centroId);
+      const centroCustoCompleto = await centroCustoService.getById(centroId);
+      
+      console.log('Dados recebidos da API:', centroCustoCompleto);
+      
+      setCentroCustoDetalhes(centroCustoCompleto);
+      console.log('Abrindo modal...');
+      setViewModalOpen(true);
+      
+    } catch (error) {
+      console.error('Erro ao carregar detalhes do centro de custo:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Erro ao carregar detalhes do centro de custo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setLoading(false);
+    }
+    */
+  };
+
+  const fecharModalVisualizacao = () => {
+    console.log('=== DEBUG: Fechando modal ===');
+    setViewModalOpen(false);
+    setCentroCustoDetalhes(null);
   };
 
   const closeSnackbar = () => {
@@ -134,8 +196,10 @@ const CentrosCustoPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {centrosCusto.map((centro) => (
-                      <TableRow key={centro.id}>
+                    {centrosCusto.map((centro, index) => {
+                      console.log(`🏢 Renderizando centro ${index}:`, centro);
+                      return (
+                      <TableRow key={centro.id || centro.centro_custo_id || centro.codigo}>
                         <TableCell>{centro.codigo}</TableCell>
                         <TableCell>{centro.nome}</TableCell>
                         <TableCell>{centro.descricao || '-'}</TableCell>
@@ -158,16 +222,35 @@ const CentrosCustoPage: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <IconButton
+                          <Tooltip title="Visualizar detalhes">
+                            <IconButton 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('🖱️ BOTÃO CLICADO - Debug detalhado');
+                                console.log('📊 Centro a ser visualizado:', centro);
+                                console.log('📍 Index:', index);
+                                handleViewDetails(centro);
+                              }} 
+                              color="info" 
+                              size="small"
+                            >
+                              <ViewIcon />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          {/* Botão teste simples */}
+                          <IconButton 
+                            onClick={() => alert('Botão teste funcionou!')} 
+                            color="error" 
                             size="small"
-                            onClick={() => handleViewDetails(centro)}
-                            title="Ver detalhes"
                           >
                             <ViewIcon />
                           </IconButton>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -210,12 +293,12 @@ const CentrosCustoPage: React.FC = () => {
                   <strong>Data de Criação:</strong> {new Date(selectedCentro.created_at).toLocaleDateString('pt-BR')}
                 </Typography>
               </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setSelectedCentro(null)}>Fechar</Button>
-            </DialogActions>
-          </Dialog>
-        )}
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={fecharModalVisualizacao}>Fechar</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Snackbar */}
         <Snackbar

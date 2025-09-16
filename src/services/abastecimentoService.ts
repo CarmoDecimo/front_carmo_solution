@@ -2,10 +2,13 @@ import { api } from './api';
 
 // Interfaces para Centro de Custo
 export interface CentroCusto {
-  id: string;
+  id?: string; // Para compatibilidade com lista
+  centro_custo_id?: number; // Para detalhes da API
   codigo: string;
   nome: string;
   descricao?: string;
+  responsavel?: string;
+  localizacao?: string;
   ativo: boolean;
   created_at: string;
   total_equipamentos?: number; // Adicionado para exibir total dinamicamente

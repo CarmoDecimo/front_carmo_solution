@@ -76,6 +76,7 @@ function Abastecimento() {
 
   const [linhas, setLinhas] = useState<AbastecimentoLinha[]>([]);
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
+  const [centrosCustoNomes, setCentrosCustoNomes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -101,6 +102,8 @@ function Abastecimento() {
       const result = await response.json();
       if (result.success) {
         setEquipamentos(result.data);
+        // Carregar nomes dos centros de custo
+        await loadCentrosCustoNomes(result.data);
       } else {
         setError('Erro ao carregar equipamentos');
         setOpenSnackbar(true);
@@ -113,6 +116,59 @@ function Abastecimento() {
       setEquipamentos([]); // Lista vazia em caso de erro
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Carregar nomes dos centros de custo para todos os equipamentos
+  const loadCentrosCustoNomes = async (equipamentos: Equipamento[]) => {
+    const centrosCustoIds = new Set<number>();
+    
+    // Coletar todos os IDs únicos de centros de custo
+    equipamentos.forEach(eq => {
+      if (eq.centro_custo_id) {
+        centrosCustoIds.add(eq.centro_custo_id);
+      }
+      // Verificar também a estrutura antiga se existir (array)
+      if (eq.centros_custo && Array.isArray(eq.centros_custo)) {
+        eq.centros_custo.forEach(cc => centrosCustoIds.add(cc.centro_custo_id));
+      }
+    });
+
+    // Buscar nomes para cada centro de custo
+    const nomes: Record<number, string> = {};
+    for (const id of centrosCustoIds) {
+      try {
+        const nome = await fetchCentroCustoNome(id);
+        nomes[id] = nome;
+      } catch (error) {
+        console.error(`Erro ao carregar centro de custo ${id}:`, error);
+        nomes[id] = `Centro de Custo ${id}`;
+      }
+    }
+    
+    setCentrosCustoNomes(nomes);
+  };
+
+  // Buscar nome do centro de custo
+  const fetchCentroCustoNome = async (centroCustoId: number): Promise<string> => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/centros-custo/${centroCustoId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        return result.data.nome || 'Centro de Custo não encontrado';
+      } else {
+        return 'Centro de Custo não encontrado';
+      }
+    } catch (error) {
+      console.error('Erro ao carregar centro de custo:', error);
+      return 'Erro ao carregar centro de custo';
     }
   };
 
@@ -133,7 +189,7 @@ function Abastecimento() {
   };
 
   // Handler para seleção de equipamento
-  const handleEquipamentoChange = (equipamentoId: number | string) => {
+  const handleEquipamentoChange = async (equipamentoId: number | string) => {
     const id = equipamentoId === '' ? '' : Number(equipamentoId);
     setEquipamentoSelecionado(id);
     
@@ -148,13 +204,25 @@ function Abastecimento() {
           matricula: equipamento.codigo_ativo // Usando código ativo como matrícula por padrão
         });
         
-        // Auto-preencher o centro de custo se o equipamento tiver um
-        if (equipamento.centros_custo && equipamento.centros_custo.length > 0) {
+        // Auto-preencher o centro de custo
+        if (equipamento.centro_custo_id) {
+          // Usar o nome do cache se disponível, senão buscar
+          let centroCustoNome = centrosCustoNomes[equipamento.centro_custo_id];
+          if (!centroCustoNome) {
+            centroCustoNome = await fetchCentroCustoNome(equipamento.centro_custo_id);
+          }
+          handleCabecalhoChange('centroCusto', equipamento.centro_custo_id.toString());
+          handleCabecalhoChange('centroCustoNome', centroCustoNome);
+        } else if (equipamento.centros_custo && equipamento.centros_custo.length > 0) {
+          // Fallback para estrutura antiga se existir
           const centroCustoAtivo = equipamento.centros_custo.find(cc => cc.associacao_ativa);
           if (centroCustoAtivo) {
-            // Preencher diretamente com os dados do centro de custo do equipamento
+            let centroCustoNome = centrosCustoNomes[centroCustoAtivo.centro_custo_id] || centroCustoAtivo.nome;
+            if (!centroCustoNome) {
+              centroCustoNome = await fetchCentroCustoNome(centroCustoAtivo.centro_custo_id);
+            }
             handleCabecalhoChange('centroCusto', centroCustoAtivo.centro_custo_id.toString());
-            handleCabecalhoChange('centroCustoNome', centroCustoAtivo.nome);
+            handleCabecalhoChange('centroCustoNome', centroCustoNome);
           }
         }
       }
