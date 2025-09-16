@@ -30,6 +30,9 @@ export type {
   UpdateAbastecimentoRequest,
   EquipamentoAbastecimento,
   CentroCusto,
+  EstatisticasCentroCusto,
+  EquipamentoCentroCusto,
+  EquipamentosCentroCustoResponse,
 } from './abastecimentoService';
 
 export type {

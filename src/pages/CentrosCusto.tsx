@@ -32,6 +32,7 @@ import type { CentroCusto } from '../services';
 const CentrosCustoPage: React.FC = () => {
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingEquipamentos, setLoadingEquipamentos] = useState<Set<string>>(new Set());
   const [selectedCentro, setSelectedCentro] = useState<CentroCusto | null>(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -48,6 +49,9 @@ const CentrosCustoPage: React.FC = () => {
     try {
       const centros = await centroCustoService.getAll();
       setCentrosCusto(centros);
+      
+      // Carregar total de equipamentos para cada centro de custo
+      await carregarTotalEquipamentos(centros);
     } catch (error) {
       console.error('Erro ao carregar centros de custo:', error);
       setSnackbar({
@@ -57,6 +61,38 @@ const CentrosCustoPage: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarTotalEquipamentos = async (centros: CentroCusto[]) => {
+    const promises = centros.map(async (centro) => {
+      try {
+        setLoadingEquipamentos(prev => new Set(prev).add(centro.id));
+        const equipamentosResponse = await centroCustoService.getEquipamentos(centro.id);
+        return {
+          ...centro,
+          total_equipamentos: equipamentosResponse.total
+        };
+      } catch (error) {
+        console.error(`Erro ao carregar equipamentos do centro ${centro.id}:`, error);
+        return {
+          ...centro,
+          total_equipamentos: 0
+        };
+      } finally {
+        setLoadingEquipamentos(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(centro.id);
+          return newSet;
+        });
+      }
+    });
+
+    try {
+      const centrosComEquipamentos = await Promise.all(promises);
+      setCentrosCusto(centrosComEquipamentos);
+    } catch (error) {
+      console.error('Erro ao carregar totais de equipamentos:', error);
     }
   };
 
@@ -92,6 +128,7 @@ const CentrosCustoPage: React.FC = () => {
                       <TableCell>Código</TableCell>
                       <TableCell>Nome</TableCell>
                       <TableCell>Descrição</TableCell>
+                      <TableCell>Total Equipamentos</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Ações</TableCell>
                     </TableRow>
@@ -102,6 +139,17 @@ const CentrosCustoPage: React.FC = () => {
                         <TableCell>{centro.codigo}</TableCell>
                         <TableCell>{centro.nome}</TableCell>
                         <TableCell>{centro.descricao || '-'}</TableCell>
+                        <TableCell>
+                          {loadingEquipamentos.has(centro.id) ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            <Chip 
+                              label={centro.total_equipamentos ?? '-'}
+                              color={centro.total_equipamentos && centro.total_equipamentos > 0 ? 'primary' : 'default'}
+                              size="small"
+                            />
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Chip 
                             label={centro.ativo ? 'Ativo' : 'Inativo'}
@@ -151,6 +199,9 @@ const CentrosCustoPage: React.FC = () => {
                 </Typography>
                 <Typography variant="body1" gutterBottom>
                   <strong>Descrição:</strong> {selectedCentro.descricao || 'Não informado'}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Total de Equipamentos:</strong> {selectedCentro.total_equipamentos ?? 'Carregando...'}
                 </Typography>
                 <Typography variant="body1" gutterBottom>
                   <strong>Status:</strong> {selectedCentro.ativo ? 'Ativo' : 'Inativo'}
