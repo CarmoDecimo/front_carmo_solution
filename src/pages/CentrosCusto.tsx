@@ -254,7 +254,7 @@ const CentrosCustoPage: React.FC = () => {
                 </Card>
                 
                 {/* Informações adicionais se existirem */}
-                {(centroCustoDetalhes.created_at || centroCustoDetalhes.updated_at) && (
+                {(centroCustoDetalhes.created_at || (centroCustoDetalhes as any).updated_at) && (
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" gutterBottom color="primary">
@@ -271,13 +271,13 @@ const CentrosCustoPage: React.FC = () => {
                             </Typography>
                           </Box>
                         )}
-                        {centroCustoDetalhes.updated_at && (
+                        {(centroCustoDetalhes as any).updated_at && (
                           <Box>
                             <Typography variant="subtitle2" color="text.secondary">
                               Última Atualização:
                             </Typography>
                             <Typography variant="body1">
-                              {new Date(centroCustoDetalhes.updated_at).toLocaleDateString('pt-BR')}
+                              {new Date((centroCustoDetalhes as any).updated_at).toLocaleDateString('pt-BR')}
                             </Typography>
                           </Box>
                         )}
