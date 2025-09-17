@@ -147,8 +147,8 @@ function Abastecimento() {
   // Adicionar linha à tabela
   const adicionarLinha = () => {
     // Validação básica
-    if (!linhaAtual.equipamento || !linhaAtual.matricula || !linhaAtual.quantidade) {
-      setError('Preencha pelo menos Equipamento, Matrícula e Quantidade.');
+    if (!linhaAtual.equipamento || !linhaAtual.matricula) {
+      setError('Preencha pelo menos Equipamento e Matrícula.');
       setOpenSnackbar(true);
       return;
     }
@@ -234,7 +234,6 @@ function Abastecimento() {
     try {
       // Preparar dados para envio
       const dadosEnvio: CreateAbastecimentoRequest = {
-        centro_custo_id: cabecalho.centroCusto,
         data_abastecimento: cabecalho.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
         existencia_inicio: Number(cabecalho.existenciaInicio),
         entrada_combustivel: Number(cabecalho.entradaCombustivel),
@@ -277,11 +276,7 @@ function Abastecimento() {
 
     } catch (error) {
       console.error('Erro ao enviar abastecimento:', error);
-      
-      if (error instanceof ApiException) {
-        setError(`Erro ao enviar: ${error.message}`);
-      } else {
-        setError('Erro inesperado ao enviar dados');
+      if ((error as any)?.response?.data?.message) {
       }
       setOpenSnackbar(true);
     } finally {

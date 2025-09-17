@@ -257,12 +257,11 @@ function Abastecimento() {
     console.log('📊 Linha atual:', linhaAtual);
     
     // Validação básica
-    if (!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0) {
+    if (!linhaAtual.equipamento || !linhaAtual.matricula) {
       console.error('❌ Validação falhou - campos obrigatórios vazios');
       console.log('  - Equipamento:', linhaAtual.equipamento);
       console.log('  - Matrícula:', linhaAtual.matricula);
-      console.log('  - Quantidade:', linhaAtual.quantidade);
-      setError('Preencha pelo menos Equipamento, Matrícula e Quantidade (maior que 0).');
+      setError('Preencha pelo menos Equipamento e Matrícula.');
       setOpenSnackbar(true);
       return;
     }
@@ -396,9 +395,8 @@ function Abastecimento() {
     try {
       // Preparar dados para envio
       console.log('📦 Preparando dados para envio...');
-      
       const dadosEnvio: CreateAbastecimentoRequest = {
-        centro_custo_id: cabecalho.centroCusto,
+        // centro_custo_id removido
         data_abastecimento: cabecalho.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
         existencia_inicio: Number(cabecalho.existenciaInicio),
         entrada_combustivel: Number(cabecalho.entradaCombustivel),
@@ -427,11 +425,8 @@ function Abastecimento() {
         ),
         responsavel_abastecimento: rodape.responsavelFinal
       };
-
       console.log('📤 Dados preparados para envio:', dadosEnvio);
-      console.log('🏢 Centro de custo no envio:', dadosEnvio.centro_custo_id);
       console.log('📊 Validação final dos dados:');
-      console.log('  - centro_custo_id:', dadosEnvio.centro_custo_id, typeof dadosEnvio.centro_custo_id);
       console.log('  - data_abastecimento:', dadosEnvio.data_abastecimento);
       console.log('  - existencia_inicio:', dadosEnvio.existencia_inicio, typeof dadosEnvio.existencia_inicio);
       console.log('  - entrada_combustivel:', dadosEnvio.entrada_combustivel, typeof dadosEnvio.entrada_combustivel);
@@ -720,24 +715,9 @@ function Abastecimento() {
                   color="primary"
                   size="small"
                   startIcon={<AddIcon />}
-                  disabled={!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0}
+                  disabled={!linhaAtual.equipamento || !linhaAtual.matricula}
                   sx={{
-                    minWidth: '120px',
-                    backgroundColor: (!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0) 
-                      ? 'grey.400' 
-                      : 'primary.main',
-                    '&:hover': {
-                      backgroundColor: (!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0) 
-                        ? 'grey.400' 
-                        : 'primary.dark'
-                    }
-                  }}
-                  onMouseEnter={() => {
-                    console.log('🔍 Debug botão Adicionar:');
-                    console.log('  - Equipamento:', linhaAtual.equipamento);
-                    console.log('  - Matrícula:', linhaAtual.matricula);
-                    console.log('  - Quantidade:', linhaAtual.quantidade);
-                    console.log('  - Botão habilitado:', !(!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0));
+                    minWidth: '120px'
                   }}
                 >
                   Adicionar
@@ -819,13 +799,7 @@ function Abastecimento() {
                 />
               </Stack>
               
-              <TextField
-                label="Centro de Custo"
-                value={cabecalho.centroCustoNome || 'Selecione um equipamento para preencher automaticamente'}
-                fullWidth
-                disabled
-                helperText="Este campo é preenchido automaticamente baseado no equipamento selecionado"
-              />
+              {/* Campo Centro de Custo removido, não é mais exibido */}
             </Stack>
           </CardContent>
         </Card>

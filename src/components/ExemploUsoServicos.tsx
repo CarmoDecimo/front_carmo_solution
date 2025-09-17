@@ -61,13 +61,13 @@ const ExemploUsoServicos = () => {
     }
   };
 
-  // Função para buscar abastecimentos de um veículo
-  const fetchAbastecimentosVeiculo = async (veiculoId: string) => {
+  // Função para buscar abastecimentos
+  const fetchAbastecimentos = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const data = await abastecimentoService.getByVeiculo(veiculoId);
+      const data = await abastecimentoService.getAll();
       setAbastecimentos(data);
     } catch (error) {
       if (error instanceof ApiException) {
@@ -168,7 +168,7 @@ const ExemploUsoServicos = () => {
             />
             <Button
               size="small"
-              onClick={() => fetchAbastecimentosVeiculo(veiculo.id)}
+              onClick={() => fetchAbastecimentos()}
               disabled={loading}
             >
               Ver Abastecimentos
@@ -188,8 +188,8 @@ const ExemploUsoServicos = () => {
             {abastecimentos.map((abastecimento) => (
               <ListItem key={abastecimento.id} divider>
                 <ListItemText
-                  primary={`${new Date(abastecimento.data_abastecimento).toLocaleDateString()} - ${abastecimento.posto}`}
-                  secondary={`${abastecimento.litros_abastecidos}L | R$ ${abastecimento.valor_total.toFixed(2)} | KM: ${abastecimento.km_atual.toLocaleString()}`}
+                  primary={`${new Date(abastecimento.data_abastecimento).toLocaleDateString()} - ${abastecimento.posto_abastecimento}`}
+                  secondary={`${abastecimento.equipamentos.reduce((total, eq) => total + eq.quantidade, 0)}L | ${abastecimento.matricula_ativo}`}
                 />
               </ListItem>
             ))}

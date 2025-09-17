@@ -87,7 +87,7 @@ export interface Abastecimento {
 }
 
 export interface CreateAbastecimentoRequest {
-  centro_custo_id: string;
+  // centro_custo_id removido, não deve ser enviado ao backend
   data_abastecimento: string;
   existencia_inicio: number;
   entrada_combustivel: number;

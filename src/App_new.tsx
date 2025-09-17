@@ -7,10 +7,10 @@ import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Abastecimento from './pages/Abastecimento';
 import Manutencao from './pages/Manutencao';
-import Horimetros from './pages/Horimetros';
+// import Horimetros from './pages/Horimetros'; // Arquivo não existe
 import OficinaPage from './pages/Oficina';
 import AbastecimentoIndex from './pages/AbastecimentoIndex';
-import AlertasIndex from './pages/AlertasIndex';
+// import AlertasIndex from './pages/AlertasIndex'; // Arquivo não existe
 import CalendarioIndex from './pages/CalendarioIndex';
 import LoginPage from './pages/auth/LoginPage';
 import { AuthProvider } from './contexts/auth/AuthContext';
@@ -105,10 +105,10 @@ function App() {
             {/* Módulo 2: Abastecimento */}
             <Route path="/abastecimento" element={<AbastecimentoIndex />} />
             <Route path="/abastecimento/controle" element={<Abastecimento />} />
-            <Route path="/horimetros" element={<Horimetros />} />
+            {/* <Route path="/horimetros" element={<Horimetros />} /> */}
             
             {/* Módulo 3: Alertas */}
-            <Route path="/alertas" element={<AlertasIndex />} />
+            {/* <Route path="/alertas" element={<AlertasIndex />} /> */}
             <Route path="/alertas/todos" element={
               <Box sx={{ p: 3 }}>
                 <h2 className="text-2xl font-semibold mb-4">Todos os Alertas</h2>

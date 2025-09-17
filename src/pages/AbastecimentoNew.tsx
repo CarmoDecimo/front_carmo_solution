@@ -147,8 +147,8 @@ function AbastecimentoNew() {
   // Adicionar linha à tabela
   const adicionarLinha = () => {
     // Validação básica
-    if (!linhaAtual.equipamento || !linhaAtual.matricula || !linhaAtual.quantidade) {
-      setError('Preencha pelo menos Equipamento, Matrícula e Quantidade.');
+    if (!linhaAtual.equipamento || !linhaAtual.matricula) {
+      setError('Preencha pelo menos Equipamento e Matrícula.');
       setOpenSnackbar(true);
       return;
     }
@@ -228,13 +228,13 @@ function AbastecimentoNew() {
       return;
     }
 
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
+  setSuccess(null);
 
     try {
       // Preparar dados para envio
       const dadosEnvio: CreateAbastecimentoRequest = {
-        centro_custo_id: cabecalho.centroCusto,
         data_abastecimento: cabecalho.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
         existencia_inicio: Number(cabecalho.existenciaInicio),
         entrada_combustivel: Number(cabecalho.entradaCombustivel),
@@ -266,10 +266,9 @@ function AbastecimentoNew() {
 
       // Enviar para o backend
       const response = await abastecimentoService.create(dadosEnvio);
-      
+      setError(null); // Garante que não há erro residual
       setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id}`);
       setOpenSnackbar(true);
-      
       // Limpar formulário após sucesso
       setTimeout(() => {
         limparTudo();
@@ -277,7 +276,7 @@ function AbastecimentoNew() {
 
     } catch (error) {
       console.error('Erro ao enviar abastecimento:', error);
-      
+      setSuccess(null); // Garante que não há sucesso residual
       if (error instanceof ApiException) {
         setError(`Erro ao enviar: ${error.message}`);
       } else {
