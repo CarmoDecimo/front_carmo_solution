@@ -11,29 +11,52 @@ export interface CentroCusto {
   localizacao?: string;
   ativo: boolean;
   created_at: string;
-  updated_at?: string;
-  criado_em?: string;
-  orcamento_anual?: number;
-  categorias?: Array<{
+  total_equipamentos?: number; // Adicionado para exibir total dinamicamente
+}
+
+// Interface para estatísticas do centro de custo
+export interface EstatisticasCentroCusto {
+  centro_custo: {
+    centro_custo_id: number;
+    nome: string;
+    codigo: string;
+    responsavel?: string;
+  };
+  equipamentos: {
+    total: number;
+    ativos: number;
+    inativos: number;
+  };
+  abastecimentos: {
+    total: number;
+    total_litros: number;
+    total_valor: number;
+    periodo: string;
+  };
+}
+
+// Interface para equipamentos de centro de custo
+export interface EquipamentoCentroCusto {
+  equipamento_id: number;
+  nome: string;
+  codigo_ativo: string;
+  categoria_id: number;
+  horimetro_atual: number;
+  km_atual?: number;
+  status_equipamento: string;
+  observacoes?: string;
+  created_at: string;
+  categorias_equipamentos: {
     categoria_id: number;
     nome: string;
     descricao: string;
-    criado_em: string;
-  }>;
-  veiculos?: Array<{ count: number }>;
-  abastecimentos?: Array<{ count: number }>;
-  total_equipamentos?: number;
-  equipamentos_com_alerta?: number;
-  total_abastecimentos_mes?: number;
-  custo_combustivel_mes?: number;
-  equipamentos?: Array<{
-    equipamento_id: number;
-    nome: string;
-    codigo_ativo: string;
-    status_equipamento: string;
-    alerta_manutencao: boolean;
-    data_associacao: string;
-  }>;
+  };
+}
+
+export interface EquipamentosCentroCustoResponse {
+  success: boolean;
+  data: EquipamentoCentroCusto[];
+  total: number;
 }
 
 // Interfaces para Abastecimento
@@ -94,8 +117,22 @@ export const centroCustoService = {
 
   // Obter centro de custo por ID
   getById: async (id: string): Promise<CentroCusto> => {
-    const response = await api.get<{ success: boolean; data: CentroCusto }>(`/api/centros-custo/${id}`);
-    return response.data;
+    return api.get<CentroCusto>(`/api/centros-custo/${id}`);
+  },
+
+  // Obter estatísticas de um centro de custo
+  getEstatisticas: async (id: string): Promise<EstatisticasCentroCusto> => {
+    return api.get<EstatisticasCentroCusto>(`/api/centros-custo/${id}/estatisticas`);
+  },
+
+  // Listar equipamentos de um centro de custo
+  getEquipamentos: async (id: string): Promise<EquipamentosCentroCustoResponse> => {
+    return api.get<EquipamentosCentroCustoResponse>(`/api/centros-custo/${id}/equipamentos`);
+  },
+
+  // Listar abastecimentos de um centro de custo
+  getAbastecimentos: async (id: string) => {
+    return api.get(`/api/centros-custo/${id}/abastecimentos`);
   },
 };
 

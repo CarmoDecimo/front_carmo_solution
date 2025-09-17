@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, Table, TableBody, TableCell, TableHead, TableRow, Paper,
-  Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch
+  Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
+  CircularProgress
 } from '@mui/material';
 import { Edit, Delete, Add, Visibility, Business } from '@mui/icons-material';
 
@@ -46,6 +47,7 @@ interface CentroCusto {
 const CentroCustoPage: React.FC = () => {
   const [centros, setCentros] = useState<CentroCusto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingEquipamentos, setLoadingEquipamentos] = useState<Set<number>>(new Set());
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   
@@ -99,6 +101,8 @@ const CentroCustoPage: React.FC = () => {
       const result = await response.json();
       if (result.success) {
         setCentros(result.data);
+        // Carregar total de equipamentos para cada centro
+        await carregarTotalEquipamentos(result.data);
       } else {
         setSnackbar({ open: true, message: 'Erro ao carregar centros de custo', severity: 'error' });
       }
@@ -107,6 +111,53 @@ const CentroCustoPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const carregarTotalEquipamentos = async (centrosList: CentroCusto[]) => {
+    const token = localStorage.getItem('authToken');
+    
+    // Processar cada centro de custo
+    const centrosComEquipamentos = await Promise.all(
+      centrosList.map(async (centro) => {
+        try {
+          setLoadingEquipamentos(prev => new Set(prev).add(centro.centro_custo_id));
+          
+          const response = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}/equipamentos`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const equipamentosResult = await response.json();
+            return {
+              ...centro,
+              total_equipamentos: equipamentosResult.success ? equipamentosResult.total : 0
+            };
+          } else {
+            return {
+              ...centro,
+              total_equipamentos: 0
+            };
+          }
+        } catch (error) {
+          console.error(`Erro ao carregar equipamentos do centro ${centro.centro_custo_id}:`, error);
+          return {
+            ...centro,
+            total_equipamentos: 0
+          };
+        } finally {
+          setLoadingEquipamentos(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(centro.centro_custo_id);
+            return newSet;
+          });
+        }
+      })
+    );
+
+    setCentros(centrosComEquipamentos);
   };
 
   const handleOpen = () => {
@@ -387,7 +438,23 @@ const CentroCustoPage: React.FC = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{centro.total_equipamentos || 0}</TableCell>
+                <TableCell>
+                  {loadingEquipamentos.has(centro.centro_custo_id) ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={16} />
+                      <Typography variant="body2" color="textSecondary">
+                        Carregando...
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Chip 
+                      label={centro.total_equipamentos ?? 0}
+                      color={centro.total_equipamentos && centro.total_equipamentos > 0 ? 'primary' : 'default'}
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
+                </TableCell>
                 <TableCell>
                   {new Date(centro.criado_em).toLocaleDateString('pt-BR')}
                 </TableCell>
