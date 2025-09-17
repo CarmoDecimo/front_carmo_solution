@@ -103,32 +103,32 @@ export const centroCustoService = {
 export const abastecimentoService = {
   // Listar todos os abastecimentos
   getAll: async (): Promise<Abastecimento[]> => {
-    return api.get<Abastecimento[]>('/api/abastecimento');
+    return api.get<Abastecimento[]>('/api/abastecimentos');
   },
 
   // Obter abastecimento por ID
   getById: async (id: string): Promise<Abastecimento> => {
-    return api.get<Abastecimento>(`/api/abastecimento/${id}`);
+    return api.get<Abastecimento>(`/api/abastecimentos/${id}`);
   },
 
   // Obter abastecimentos por centro de custo
   getByCentroCusto: async (centroCustoId: string): Promise<Abastecimento[]> => {
-    return api.get<Abastecimento[]>(`/api/abastecimento/centro-custo/${centroCustoId}`);
+    return api.get<Abastecimento[]>(`/api/abastecimentos/centro-custo/${centroCustoId}`);
   },
 
   // Criar novo abastecimento
   create: async (data: CreateAbastecimentoRequest): Promise<Abastecimento> => {
-    return api.post<Abastecimento>('/api/abastecimento', data);
+    return api.post<Abastecimento>('/api/abastecimentos', data);
   },
 
   // Atualizar abastecimento
   update: async (id: string, data: Partial<CreateAbastecimentoRequest>): Promise<Abastecimento> => {
-    return api.put<Abastecimento>(`/api/abastecimento/${id}`, data);
+    return api.put<Abastecimento>(`/api/abastecimentos/${id}`, data);
   },
 
   // Deletar abastecimento
   delete: async (id: string): Promise<{ message: string }> => {
-    return api.delete<{ message: string }>(`/api/abastecimento/${id}`);
+    return api.delete<{ message: string }>(`/api/abastecimentos/${id}`);
   },
 
   // Obter relatório de consumo
@@ -141,7 +141,7 @@ export const abastecimentoService = {
     }
     
     const queryString = params.toString();
-    const endpoint = queryString ? `/api/abastecimento/relatorio/consumo?${queryString}` : '/api/abastecimento/relatorio/consumo';
+    const endpoint = queryString ? `/api/abastecimentos/relatorio/consumo?${queryString}` : '/api/abastecimentos/relatorio/consumo';
     
     return api.get(endpoint);
   },

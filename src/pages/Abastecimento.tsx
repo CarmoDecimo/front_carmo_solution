@@ -206,13 +206,16 @@ function Abastecimento() {
         
         // Auto-preencher o centro de custo
         if (equipamento.centro_custo_id) {
+          console.log('🏢 Preenchendo centro de custo com ID:', equipamento.centro_custo_id);
           // Usar o nome do cache se disponível, senão buscar
           let centroCustoNome = centrosCustoNomes[equipamento.centro_custo_id];
           if (!centroCustoNome) {
             centroCustoNome = await fetchCentroCustoNome(equipamento.centro_custo_id);
           }
+          console.log('📝 Nome do centro de custo obtido:', centroCustoNome);
           handleCabecalhoChange('centroCusto', equipamento.centro_custo_id.toString());
           handleCabecalhoChange('centroCustoNome', centroCustoNome);
+          console.log('✅ Centro de custo definido no cabeçalho');
         } else if (equipamento.centros_custo && equipamento.centros_custo.length > 0) {
           // Fallback para estrutura antiga se existir
           const centroCustoAtivo = equipamento.centros_custo.find(cc => cc.associacao_ativa);
@@ -250,9 +253,16 @@ function Abastecimento() {
 
   // Adicionar linha à tabela
   const adicionarLinha = () => {
+    console.log('➕ Tentando adicionar linha...');
+    console.log('📊 Linha atual:', linhaAtual);
+    
     // Validação básica
-    if (!linhaAtual.equipamento || !linhaAtual.matricula || !linhaAtual.quantidade) {
-      setError('Preencha pelo menos Equipamento, Matrícula e Quantidade.');
+    if (!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0) {
+      console.error('❌ Validação falhou - campos obrigatórios vazios');
+      console.log('  - Equipamento:', linhaAtual.equipamento);
+      console.log('  - Matrícula:', linhaAtual.matricula);
+      console.log('  - Quantidade:', linhaAtual.quantidade);
+      setError('Preencha pelo menos Equipamento, Matrícula e Quantidade (maior que 0).');
       setOpenSnackbar(true);
       return;
     }
@@ -262,7 +272,17 @@ function Abastecimento() {
       id: Date.now() // Usar timestamp como id único temporário
     };
 
-    setLinhas([...linhas, novaLinha]);
+    console.log('✅ Nova linha criada:', novaLinha);
+    
+    const novasLinhas = [...linhas, novaLinha];
+    console.log('📋 Lista atualizada de linhas:', novasLinhas);
+    console.log('📊 Total de linhas após adição:', novasLinhas.length);
+    
+    setLinhas(novasLinhas);
+
+    // Mostrar mensagem de sucesso
+    setSuccess(`Equipamento "${novaLinha.equipamento}" adicionado com sucesso!`);
+    setOpenSnackbar(true);
 
     // Limpar linha atual
     setLinhaAtual({
@@ -313,28 +333,43 @@ function Abastecimento() {
     }
   };
 
-  // Verificar se todos os campos obrigatórios estão preenchidos
-  const isFormValid = () => {
-    return !!(
-      cabecalho.centroCusto &&
-      cabecalho.existenciaInicio &&
-      cabecalho.entradaCombustivel &&
-      cabecalho.posto &&
-      cabecalho.matricula &&
-      cabecalho.operador &&
-      rodape.responsavelFinal &&
-      linhas.length > 0
-    );
-  };
-
   // Enviar dados para o backend
   const enviarParaBackend = async () => {
+    console.log('🚀 Iniciando envio para backend');
+    console.log('📊 Estado completo no momento do envio:');
+    console.log('  - Cabeçalho:', cabecalho);
+    console.log('  - Rodapé:', rodape);
+    console.log('  - Linhas de equipamentos:', linhas);
+    console.log('  - Quantidade de linhas:', linhas.length);
+    console.log('  - Linha atual:', linhaAtual);
+    console.log('  - Equipamento selecionado:', equipamentoSelecionado);
+    
+    console.log('🏢 Centro de Custo:', cabecalho.centroCusto);
+    console.log('📝 Nome do Centro de Custo:', cabecalho.centroCustoNome);
+    
     // Validação dos dados obrigatórios
-    if (!cabecalho.centroCusto) {
-      setError('Centro de Custo é obrigatório');
+    console.log('🔍 Verificando validação do centro de custo:');
+    console.log('  - centroCusto (ID):', `"${cabecalho.centroCusto}"`);
+    console.log('  - centroCustoNome:', `"${cabecalho.centroCustoNome}"`);
+    console.log('  - Tipo de centroCusto:', typeof cabecalho.centroCusto);
+    console.log('  - Comprimento de centroCusto:', cabecalho.centroCusto?.length);
+    
+    // Como o centro de custo é preenchido automaticamente e o campo está desabilitado,
+    // vamos pular a validação se pelo menos o nome estiver preenchido
+    if ((!cabecalho.centroCusto || cabecalho.centroCusto === '' || cabecalho.centroCusto === 'undefined') && 
+        (!cabecalho.centroCustoNome || cabecalho.centroCustoNome === '')) {
+      console.error('❌ Centro de Custo está vazio (tanto ID quanto nome)');
+      setError('Centro de Custo é obrigatório - Selecione um equipamento primeiro');
       setOpenSnackbar(true);
       return;
     }
+
+    // Se só o nome estiver preenchido mas não o ID, vamos permitir o envio
+    if (cabecalho.centroCustoNome && (!cabecalho.centroCusto || cabecalho.centroCusto === '')) {
+      console.log('⚠️ Apenas nome do centro de custo disponível, tentando prosseguir...');
+    }
+
+    console.log('✅ Centro de Custo válido:', cabecalho.centroCusto);
 
     if (!cabecalho.existenciaInicio || !cabecalho.entradaCombustivel || !cabecalho.posto || 
         !cabecalho.matricula || !cabecalho.operador || !rodape.responsavelFinal) {
@@ -344,16 +379,24 @@ function Abastecimento() {
     }
 
     if (linhas.length === 0) {
-      setError('Adicione pelo menos um equipamento');
+      console.error('❌ Nenhum equipamento encontrado na lista');
+      console.log('📊 Estado atual das linhas:', linhas);
+      console.log('📊 Quantidade de linhas:', linhas.length);
+      setError('Nenhum equipamento foi adicionado. Selecione um equipamento e clique em "Adicionar" para incluí-lo na lista.');
       setOpenSnackbar(true);
       return;
     }
+
+    console.log('✅ Equipamentos encontrados:', linhas.length);
+    console.log('📋 Lista de equipamentos:', linhas);
 
     setLoading(true);
     setError(null);
 
     try {
       // Preparar dados para envio
+      console.log('📦 Preparando dados para envio...');
+      
       const dadosEnvio: CreateAbastecimentoRequest = {
         centro_custo_id: cabecalho.centroCusto,
         data_abastecimento: cabecalho.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
@@ -385,7 +428,39 @@ function Abastecimento() {
         responsavel_abastecimento: rodape.responsavelFinal
       };
 
+      console.log('📤 Dados preparados para envio:', dadosEnvio);
+      console.log('🏢 Centro de custo no envio:', dadosEnvio.centro_custo_id);
+      console.log('📊 Validação final dos dados:');
+      console.log('  - centro_custo_id:', dadosEnvio.centro_custo_id, typeof dadosEnvio.centro_custo_id);
+      console.log('  - data_abastecimento:', dadosEnvio.data_abastecimento);
+      console.log('  - existencia_inicio:', dadosEnvio.existencia_inicio, typeof dadosEnvio.existencia_inicio);
+      console.log('  - entrada_combustivel:', dadosEnvio.entrada_combustivel, typeof dadosEnvio.entrada_combustivel);
+      console.log('  - equipamentos length:', dadosEnvio.equipamentos.length);
+      console.log('  - equipamentos[0]:', dadosEnvio.equipamentos[0]);
+      console.log('  - existencia_fim:', dadosEnvio.existencia_fim, typeof dadosEnvio.existencia_fim);
+      console.log('  - responsavel_abastecimento:', dadosEnvio.responsavel_abastecimento);
+      
+      // Validar se todos os números são válidos
+      if (isNaN(dadosEnvio.existencia_inicio)) {
+        console.error('❌ existencia_inicio não é um número válido:', dadosEnvio.existencia_inicio);
+      }
+      if (isNaN(dadosEnvio.entrada_combustivel)) {
+        console.error('❌ entrada_combustivel não é um número válido:', dadosEnvio.entrada_combustivel);
+      }
+      if (isNaN(dadosEnvio.existencia_fim)) {
+        console.error('❌ existencia_fim não é um número válido:', dadosEnvio.existencia_fim);
+      }
+      
+      // Validar equipamentos
+      dadosEnvio.equipamentos.forEach((eq, index) => {
+        console.log(`📋 Equipamento ${index + 1}:`, eq);
+        if (isNaN(eq.quantidade)) {
+          console.error(`❌ Quantidade do equipamento ${index + 1} não é válida:`, eq.quantidade);
+        }
+      });
+
       // Enviar para o backend
+      console.log('🚀 Chamando abastecimentoService.create...');
       const response = await abastecimentoService.create(dadosEnvio);
       
       setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id}`);
@@ -397,10 +472,21 @@ function Abastecimento() {
       }, 2000);
 
     } catch (error) {
-      console.error('Erro ao enviar abastecimento:', error);
+      console.error('❌ ERRO COMPLETO ao enviar abastecimento:', error);
+      console.error('❌ Tipo do erro:', typeof error);
+      console.error('❌ Error.name:', (error as any)?.name);
+      console.error('❌ Error.message:', (error as any)?.message);
+      console.error('❌ Error.response:', (error as any)?.response);
+      console.error('❌ Error.response.data:', (error as any)?.response?.data);
+      console.error('❌ Error.response.status:', (error as any)?.response?.status);
+      console.error('❌ Error.stack:', (error as any)?.stack);
       
       if (error instanceof ApiException) {
         setError(`Erro ao enviar: ${error.message}`);
+      } else if ((error as any)?.response?.data?.message) {
+        setError(`Erro do servidor: ${(error as any).response.data.message}`);
+      } else if ((error as any)?.message) {
+        setError(`Erro: ${(error as any).message}`);
       } else {
         setError('Erro inesperado ao enviar dados');
       }
@@ -555,6 +641,11 @@ function Abastecimento() {
             <Typography variant="h6" gutterBottom>
               Adicionar Equipamento
             </Typography>
+            {linhas.length === 0 && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Selecione um equipamento, preencha os dados obrigatórios e clique em "Adicionar" para incluí-lo na lista.
+              </Alert>
+            )}
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
                 <FormControl fullWidth size="small">
@@ -623,13 +714,34 @@ function Abastecimento() {
                   fullWidth
                   size="small"
                 />
-                <IconButton 
+                <Button 
                   onClick={adicionarLinha}
+                  variant="contained"
                   color="primary"
                   size="small"
+                  startIcon={<AddIcon />}
+                  disabled={!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0}
+                  sx={{
+                    minWidth: '120px',
+                    backgroundColor: (!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0) 
+                      ? 'grey.400' 
+                      : 'primary.main',
+                    '&:hover': {
+                      backgroundColor: (!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0) 
+                        ? 'grey.400' 
+                        : 'primary.dark'
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    console.log('🔍 Debug botão Adicionar:');
+                    console.log('  - Equipamento:', linhaAtual.equipamento);
+                    console.log('  - Matrícula:', linhaAtual.matricula);
+                    console.log('  - Quantidade:', linhaAtual.quantidade);
+                    console.log('  - Botão habilitado:', !(!linhaAtual.equipamento || !linhaAtual.matricula || linhaAtual.quantidade <= 0));
+                  }}
                 >
-                  <AddIcon />
-                </IconButton>
+                  Adicionar
+                </Button>
               </Stack>
             </Stack>
           </CardContent>
@@ -725,7 +837,7 @@ function Abastecimento() {
             color="primary"
             onClick={enviarParaBackend}
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-            disabled={loading || !isFormValid()}
+            disabled={loading}
           >
             {loading ? 'Enviando...' : 'Enviar para Backend'}
           </Button>

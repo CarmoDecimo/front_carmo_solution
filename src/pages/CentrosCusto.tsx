@@ -77,18 +77,7 @@ const CentrosCustoPage: React.FC = () => {
     console.log('🔑 ID do centro:', centro.id || centro.centro_custo_id);
     console.log('📝 Nome do centro:', centro.nome);
     
-    alert(`Clique funcionou! Centro: ${centro.nome}`); // Alert para garantir que está funcionando
-    
-    // Testar primeiro se consegue abrir o modal sem chamar a API
-    setCentroCustoDetalhes(centro); // Usar os dados que já temos
-    setViewModalOpen(true);
-    console.log('✅ Modal definido como aberto');
-    
-    return; // Comentar a partir daqui para testar só a abertura do modal
-    
-    /*
     setLoading(true);
-    setCentroCustoDetalhes(null);
     
     try {
       // Use o ID disponível (pode ser 'id' para lista ou 'centro_custo_id' para detalhes)
@@ -118,7 +107,6 @@ const CentrosCustoPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-    */
   };
 
   const fecharModalVisualizacao = () => {
@@ -191,15 +179,6 @@ const CentrosCustoPage: React.FC = () => {
                               <ViewIcon />
                             </IconButton>
                           </Tooltip>
-                          
-                          {/* Botão teste simples */}
-                          <IconButton 
-                            onClick={() => alert('Botão teste funcionou!')} 
-                            color="error" 
-                            size="small"
-                          >
-                            <ViewIcon />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                       );
@@ -211,7 +190,7 @@ const CentrosCustoPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Modal de Detalhes Elaborado - TESTE */}
+        {/* Modal de Detalhes do Centro de Custo */}
         <Dialog
           open={viewModalOpen}
           onClose={fecharModalVisualizacao}
@@ -219,24 +198,104 @@ const CentrosCustoPage: React.FC = () => {
           fullWidth
         >
           <DialogTitle>
-            <Typography variant="h6">TESTE - Modal Funcionando</Typography>
+            <Typography variant="h6">
+              Detalhes do Centro de Custo
+            </Typography>
           </DialogTitle>
           <DialogContent>
-            <Typography>
-              Modal Open: {viewModalOpen ? 'SIM' : 'NÃO'}
-            </Typography>
-            <Typography>
-              Centro Detalhes: {centroCustoDetalhes ? 'Carregado' : 'Não carregado'}
-            </Typography>
-            {centroCustoDetalhes && (
-              <Box>
-                <Typography>Nome: {centroCustoDetalhes.nome}</Typography>
-                <Typography>Código: {centroCustoDetalhes.codigo}</Typography>
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                <CircularProgress />
               </Box>
+            ) : centroCustoDetalhes ? (
+              <Box sx={{ pt: 2 }}>
+                <Card variant="outlined" sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      Informações Básicas
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Nome:
+                        </Typography>
+                        <Typography variant="body1">
+                          {centroCustoDetalhes.nome || 'N/A'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Código:
+                        </Typography>
+                        <Typography variant="body1">
+                          {centroCustoDetalhes.codigo || 'N/A'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Descrição:
+                        </Typography>
+                        <Typography variant="body1">
+                          {centroCustoDetalhes.descricao || 'N/A'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Status:
+                        </Typography>
+                        <Chip 
+                          label={centroCustoDetalhes.ativo ? 'Ativo' : 'Inativo'} 
+                          color={centroCustoDetalhes.ativo ? 'success' : 'error'}
+                          size="small"
+                        />
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+                
+                {/* Informações adicionais se existirem */}
+                {(centroCustoDetalhes.created_at || centroCustoDetalhes.updated_at) && (
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary">
+                        Histórico
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                        {centroCustoDetalhes.created_at && (
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Data de Criação:
+                            </Typography>
+                            <Typography variant="body1">
+                              {new Date(centroCustoDetalhes.created_at).toLocaleDateString('pt-BR')}
+                            </Typography>
+                          </Box>
+                        )}
+                        {centroCustoDetalhes.updated_at && (
+                          <Box>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Última Atualização:
+                            </Typography>
+                            <Typography variant="body1">
+                              {new Date(centroCustoDetalhes.updated_at).toLocaleDateString('pt-BR')}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )}
+              </Box>
+            ) : (
+              <Typography color="text.secondary">
+                Nenhum detalhe disponível
+              </Typography>
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={fecharModalVisualizacao}>Fechar</Button>
+            <Button onClick={fecharModalVisualizacao} variant="outlined">
+              Fechar
+            </Button>
           </DialogActions>
         </Dialog>
 

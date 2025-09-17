@@ -18,6 +18,29 @@ interface CentroCusto {
   email_responsavel?: string;
   criado_em: string;
   total_equipamentos?: number;
+  descricao?: string;
+  orcamento_anual?: number;
+  created_at?: string;
+  updated_at?: string;
+  veiculos?: Array<{ count: number }>;
+  abastecimentos?: Array<{ count: number }>;
+  equipamentos_com_alerta?: number;
+  total_abastecimentos_mes?: number;
+  custo_combustivel_mes?: number;
+  categorias?: Array<{
+    categoria_id: number;
+    nome: string;
+    descricao: string;
+    criado_em: string;
+  }>;
+  equipamentos?: Array<{
+    equipamento_id: number;
+    nome: string;
+    codigo_ativo: string;
+    status_equipamento: string;
+    alerta_manutencao: boolean;
+    data_associacao: string;
+  }>;
 }
 
 const CentroCustoPage: React.FC = () => {
@@ -25,6 +48,10 @@ const CentroCustoPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  
+  // Estados do modal de visualização
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewCentro, setViewCentro] = useState<CentroCusto | null>(null);
   
   // Estados do modal
   const [nome, setNome] = useState('');
@@ -106,6 +133,11 @@ const CentroCustoPage: React.FC = () => {
     setEmailResponsavel(centro.email_responsavel || '');
     setCriadoEm(centro.criado_em);
     setOpen(true);
+  };
+
+  const handleView = (centro: CentroCusto) => {
+    setViewCentro(centro);
+    setViewModalOpen(true);
   };
 
   const handleSave = async () => {
@@ -363,7 +395,7 @@ const CentroCustoPage: React.FC = () => {
                   <IconButton onClick={() => handleEdit(centro)} color="primary" size="small">
                     <Edit />
                   </IconButton>
-                  <IconButton onClick={() => {}} color="info" size="small">
+                  <IconButton onClick={() => handleView(centro)} color="info" size="small">
                     <Visibility />
                   </IconButton>
                   <IconButton 
@@ -467,6 +499,245 @@ const CentroCustoPage: React.FC = () => {
             disabled={loading || !nome.trim()}
           >
             {loading ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Visualização */}
+      <Dialog 
+        open={viewModalOpen} 
+        onClose={() => setViewModalOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Business />
+            <Typography variant="h6">Detalhes do Centro de Custo</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {viewCentro && (
+            <Box sx={{ display: 'grid', gap: 3 }}>
+              {/* Informações Básicas */}
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Informações Básicas
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Nome:
+                    </Typography>
+                    <Typography variant="body1">{viewCentro.nome}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Código:
+                    </Typography>
+                    <Typography variant="body1">{viewCentro.codigo || 'N/A'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Responsável:
+                    </Typography>
+                    <Typography variant="body1">{viewCentro.responsavel || 'N/A'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Localização:
+                    </Typography>
+                    <Typography variant="body1">{viewCentro.localizacao || 'N/A'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Status:
+                    </Typography>
+                    <Chip 
+                      label={viewCentro.ativo ? 'Ativo' : 'Inativo'} 
+                      color={viewCentro.ativo ? 'success' : 'error'}
+                      size="small"
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Orçamento Anual:
+                    </Typography>
+                    <Typography variant="body1">
+                      {viewCentro.orcamento_anual ? `€${viewCentro.orcamento_anual.toLocaleString()}` : 'N/A'}
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                {viewCentro.descricao && (
+                  <Box sx={{ mt: 2, gridColumn: '1 / -1' }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Descrição:
+                    </Typography>
+                    <Typography variant="body1">{viewCentro.descricao}</Typography>
+                  </Box>
+                )}
+              </Paper>
+
+              {/* Estatísticas Gerais */}
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Estatísticas Gerais
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total de Equipamentos:
+                    </Typography>
+                    <Typography variant="h4" color="primary">
+                      {viewCentro.total_equipamentos || 0}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total de Veículos:
+                    </Typography>
+                    <Typography variant="h4" color="secondary">
+                      {viewCentro.veiculos?.[0]?.count || 0}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total de Abastecimentos:
+                    </Typography>
+                    <Typography variant="h4" color="info.main">
+                      {viewCentro.abastecimentos?.[0]?.count || 0}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Equipamentos com Alerta:
+                    </Typography>
+                    <Typography variant="h4" color={(viewCentro.equipamentos_com_alerta || 0) > 0 ? "error" : "success"}>
+                      {viewCentro.equipamentos_com_alerta || 0}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Abastecimentos Este Mês:
+                    </Typography>
+                    <Typography variant="h4" color="warning.main">
+                      {viewCentro.total_abastecimentos_mes || 0}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Custo Combustível (Mês):
+                    </Typography>
+                    <Typography variant="h4" color="error.main">
+                      €{(viewCentro.custo_combustivel_mes || 0).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
+
+              {/* Categorias */}
+              {viewCentro.categorias && viewCentro.categorias.length > 0 && (
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    Categorias ({viewCentro.categorias.length})
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {viewCentro.categorias.map((categoria) => (
+                      <Chip
+                        key={categoria.categoria_id}
+                        label={categoria.nome}
+                        variant="outlined"
+                        sx={{ mb: 1 }}
+                      />
+                    ))}
+                  </Box>
+                </Paper>
+              )}
+
+              {/* Equipamentos */}
+              {viewCentro.equipamentos && viewCentro.equipamentos.length > 0 && (
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    Equipamentos Associados ({viewCentro.equipamentos.length})
+                  </Typography>
+                  <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                    {viewCentro.equipamentos.map((equipamento, index) => (
+                      <Box key={equipamento.equipamento_id || index} sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        p: 1,
+                        mb: 1,
+                        bgcolor: 'background.default',
+                        borderRadius: 1
+                      }}>
+                        <Box>
+                          <Typography variant="body2" fontWeight="bold">
+                            {equipamento.nome}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {equipamento.codigo_ativo} | {equipamento.status_equipamento}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          {equipamento.alerta_manutencao && (
+                            <Chip 
+                              label="Alerta" 
+                              color="error" 
+                              size="small" 
+                            />
+                          )}
+                          <Typography variant="caption" color="text.secondary">
+                            Desde: {new Date(equipamento.data_associacao).toLocaleDateString('pt-BR')}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Paper>
+              )}
+
+              {/* Informações de Sistema */}
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  Informações do Sistema
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Data de Criação:
+                    </Typography>
+                    <Typography variant="body1">
+                      {new Date(viewCentro.criado_em || viewCentro.created_at || new Date()).toLocaleDateString('pt-BR')}
+                    </Typography>
+                  </Box>
+                  {viewCentro.updated_at && (
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Última Atualização:
+                      </Typography>
+                      <Typography variant="body1">
+                        {new Date(viewCentro.updated_at).toLocaleDateString('pt-BR')}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      ID do Centro:
+                    </Typography>
+                    <Typography variant="body1">
+                      {viewCentro.centro_custo_id}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewModalOpen(false)} variant="outlined">
+            Fechar
           </Button>
         </DialogActions>
       </Dialog>
