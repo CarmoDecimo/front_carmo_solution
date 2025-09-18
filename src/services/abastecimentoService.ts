@@ -61,16 +61,19 @@ export interface EquipamentosCentroCustoResponse {
 
 // Interfaces para Abastecimento
 export interface EquipamentoAbastecimento {
+  id?: number;
+  abastecimento_id?: number;
   equipamento: string;
   activo: string;
   matricula: string;
   quantidade: number;
   kmh?: number;
   assinatura: string;
+  criado_em?: string;
 }
 
 export interface Abastecimento {
-  id: string;
+  id_abastecimento: number;
   centro_custo_id: string;
   data_abastecimento: string;
   existencia_inicio: number;
@@ -78,11 +81,19 @@ export interface Abastecimento {
   posto_abastecimento: string;
   matricula_ativo: string;
   operador: string;
-  equipamentos: EquipamentoAbastecimento[];
+  equipamentos_abastecimentos?: EquipamentoAbastecimento[];
   existencia_fim: number;
   responsavel_abastecimento: string;
+  veiculo_id?: string | null;
+  quilometragem?: number | null;
+  horimetro?: number | null;
+  quantidade_combustivel?: number | null;
+  custo?: number | null;
+  local_abastecimento?: string | null;
+  responsavel?: string | null;
   numero_protocolo?: string;
-  created_at: string;
+  criado_por: string;
+  criado_em: string;
   updated_at: string;
 }
 
@@ -101,6 +112,15 @@ export interface CreateAbastecimentoRequest {
 
 export interface UpdateAbastecimentoRequest extends Partial<CreateAbastecimentoRequest> {
   id: string;
+}
+
+// Interface para resposta paginada da API
+export interface AbastecimentoResponse {
+  data: Abastecimento[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
 }
 
 // Serviço de Centro de Custo
@@ -139,8 +159,8 @@ export const centroCustoService = {
 // Serviço de Abastecimento
 export const abastecimentoService = {
   // Listar todos os abastecimentos
-  getAll: async (): Promise<Abastecimento[]> => {
-    return api.get<Abastecimento[]>('/api/abastecimentos');
+  getAll: async (): Promise<AbastecimentoResponse> => {
+    return api.get<AbastecimentoResponse>('/api/abastecimentos');
   },
 
   // Obter abastecimento por ID

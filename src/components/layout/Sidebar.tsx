@@ -100,7 +100,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
     },
     
     // Módulo 2: Abastecimento
-    { text: 'Abastecimento', icon: <LocalGasStationIcon />, path: '/abastecimento/controle' },
+    { text: 'Centro de abastecimento', icon: <LocalGasStationIcon />, path: '/abastecimento' },
     
     // Módulo 3: Calendário de Manutenção
     { 

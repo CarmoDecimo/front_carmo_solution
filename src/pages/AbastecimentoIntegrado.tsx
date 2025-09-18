@@ -276,7 +276,11 @@ function Abastecimento() {
 
     } catch (error) {
       console.error('Erro ao enviar abastecimento:', error);
-      if ((error as any)?.response?.data?.message) {
+      
+      if (error instanceof ApiException) {
+        setError(`Erro ao enviar: ${error.message}`);
+      } else {
+        setError('Erro inesperado ao enviar dados');
       }
       setOpenSnackbar(true);
     } finally {

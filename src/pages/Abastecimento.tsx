@@ -23,14 +23,13 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import SaveIcon from '@mui/icons-material/Save';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ptBR } from 'date-fns/locale';
-import { preencherTemplateAbastecimento, calcularExistenciaFinal } from '../templates/abastecimento/abastecimento-template';
+import { calcularExistenciaFinal } from '../templates/abastecimento/abastecimento-template';
 import { abastecimentoService, ApiException, API_BASE_URL } from '../services';
 // import { centroCustoService } from '../services'; // TODO: Usar quando API estiver implementada
 import type { CreateAbastecimentoRequest, Equipamento } from '../services';
@@ -458,7 +457,7 @@ function Abastecimento() {
       console.log('🚀 Chamando abastecimentoService.create...');
       const response = await abastecimentoService.create(dadosEnvio);
       
-      setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id}`);
+      setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
       setOpenSnackbar(true);
       
       // Limpar formulário após sucesso
@@ -491,70 +490,6 @@ function Abastecimento() {
     }
   };
 
-  // Exportar para Excel usando template
-  const exportarExcel = async () => {
-    try {
-      // Preparar os dados no formato esperado pelo template
-      const dadosTemplate = {
-        data: {
-          dia: cabecalho.data.getDate(),
-          mes: cabecalho.data.getMonth() + 1,
-          ano: cabecalho.data.getFullYear()
-        },
-        existenciaInicio: Number(cabecalho.existenciaInicio) || 0,
-        entradaCombustivel: Number(cabecalho.entradaCombustivel) || 0,
-        postoAbastecimento: cabecalho.posto,
-        matriculaAtivo: cabecalho.matricula,
-        operador: cabecalho.operador,
-        equipamentos: linhas.map(linha => ({
-          equipamento: linha.equipamento,
-          activo: linha.activo,
-          matricula: linha.matricula,
-          quantidade: linha.quantidade,
-          kmH: linha.kmh || 0,
-          assinatura: linha.assinatura
-        })),
-        existenciaFim: Number(rodape.existenciaFim) || calcularExistenciaFinal(
-          Number(cabecalho.existenciaInicio) || 0,
-          Number(cabecalho.entradaCombustivel) || 0,
-          linhas.map(linha => ({
-            equipamento: linha.equipamento,
-            activo: linha.activo,
-            matricula: linha.matricula,
-            quantidade: linha.quantidade,
-            kmH: linha.kmh || 0,
-            assinatura: linha.assinatura
-          }))
-        ),
-        responsavelAbastecimento: rodape.responsavelFinal
-      };
-
-      // Gerar o arquivo usando o template
-      const buffer = await preencherTemplateAbastecimento(dadosTemplate);
-      
-      // Criar blob e download
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Controle_Abastecimento_${cabecalho.data.toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      setSuccess('Arquivo Excel gerado com sucesso!');
-      setOpenSnackbar(true);
-
-    } catch (error) {
-      console.error('Erro ao exportar Excel:', error);
-      setError('Erro ao gerar arquivo Excel');
-      setOpenSnackbar(true);
-    }
-  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
@@ -813,16 +748,7 @@ function Abastecimento() {
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             disabled={loading}
           >
-            {loading ? 'Enviando...' : 'Enviar para Backend'}
-          </Button>
-          
-          <Button
-            variant="outlined"
-            onClick={exportarExcel}
-            startIcon={<FileDownloadIcon />}
-            disabled={loading}
-          >
-            Exportar Excel
+            {loading ? 'Enviando...' : 'Salvar Abastecimento'}
           </Button>
           
           <Button
