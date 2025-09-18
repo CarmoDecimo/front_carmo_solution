@@ -3,14 +3,14 @@ import {
   Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, Table, TableBody, TableCell, TableHead, TableRow, Paper,
   Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
-  Select, MenuItem, FormControl, InputLabel, Tooltip
+  Tooltip, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
 import { 
-  Edit, Delete, Add, Visibility, Construction, Warning, 
-  Speed, Link, LinkOff, Build 
+  Edit, Delete, Add, Visibility, Construction, Warning, Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
 import { equipamentosService, categoriaEquipamentoService } from '../services';
 import type { Categoria } from '../services';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 // Interface para Equipamento conforme API
 interface Equipamento {
@@ -91,6 +91,13 @@ const EquipamentosPage: React.FC = () => {
 
   // Estados de feedback
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  
+  // Estados para modal de confirmação de exclusão
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    equipamento: null as Equipamento | null,
+    loading: false
+  });
   
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -284,13 +291,21 @@ const EquipamentosPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir este equipamento?')) return;
+  const handleDeleteClick = (equipamento: Equipamento) => {
+    setDeleteDialog({
+      open: true,
+      equipamento,
+      loading: false
+    });
+  };
 
-    setLoading(true);
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.equipamento) return;
+
+    setDeleteDialog(prev => ({ ...prev, loading: true }));
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/equipamentos/${id}`, {
+      const response = await fetch(`http://localhost:3001/api/equipamentos/${deleteDialog.equipamento.equipamento_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -299,16 +314,21 @@ const EquipamentosPage: React.FC = () => {
 
       const result = await response.json();
       if (result.success) {
-        setSnackbar({ open: true, message: 'Equipamento excluído!', severity: 'success' });
+        setSnackbar({ open: true, message: 'Equipamento excluído com sucesso!', severity: 'success' });
         carregarEquipamentos();
+        setDeleteDialog({ open: false, equipamento: null, loading: false });
       } else {
         setSnackbar({ open: true, message: result.message || 'Erro ao excluir', severity: 'error' });
+        setDeleteDialog(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
-    } finally {
-      setLoading(false);
+      setDeleteDialog(prev => ({ ...prev, loading: false }));
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ open: false, equipamento: null, loading: false });
   };
 
   const abrirModalHorimetro = (equipamento: Equipamento) => {
@@ -868,7 +888,7 @@ const EquipamentosPage: React.FC = () => {
                     
                     <Tooltip title="Excluir equipamento">
                       <IconButton 
-                        onClick={() => handleDelete(equipamento.equipamento_id)} 
+                        onClick={() => handleDeleteClick(equipamento)} 
                         color="error" 
                         size="small"
                       >
@@ -1494,6 +1514,28 @@ const EquipamentosPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Modal de confirmação para exclusão */}
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Equipamento"
+        message="Tem certeza que deseja excluir este equipamento? Esta ação pode afetar registros de manutenção e abastecimentos."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        severity="error"
+        loading={deleteDialog.loading}
+        destructive={true}
+        itemDetails={deleteDialog.equipamento ? [
+          { label: 'Nome', value: deleteDialog.equipamento.nome },
+          { label: 'Código Ativo', value: deleteDialog.equipamento.codigo_ativo },
+          { label: 'Status', value: deleteDialog.equipamento.status_equipamento },
+          { label: 'Horímetro Atual', value: deleteDialog.equipamento.horimetro_atual?.toString() || '0' },
+          { label: 'KM Atual', value: deleteDialog.equipamento.km_atual?.toString() || 'N/A' }
+        ] : []}
+        additionalInfo="ATENÇÃO: Todos os registros de manutenção, abastecimentos e histórico associados a este equipamento podem ser afetados. Verifique se não há dependências antes de prosseguir."
+      />
     </Container>
   );
 };

@@ -6,6 +6,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Edit, Delete, Add, Download, Business } from '@mui/icons-material';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 // Interface para Centro de Custo conforme API
 interface CentroCusto {
@@ -64,6 +65,13 @@ const CentroCustoPage: React.FC = () => {
 
   // Estados de feedback
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  
+  // Estados para modal de confirmação de exclusão
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    centro: null as CentroCusto | null,
+    loading: false
+  });
   
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -343,13 +351,21 @@ const CentroCustoPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir este centro de custo?')) return;
+  const handleDeleteClick = (centro: CentroCusto) => {
+    setDeleteDialog({
+      open: true,
+      centro,
+      loading: false
+    });
+  };
 
-    setLoading(true);
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.centro) return;
+
+    setDeleteDialog(prev => ({ ...prev, loading: true }));
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/centros-custo/${id}`, {
+      const response = await fetch(`http://localhost:3001/api/centros-custo/${deleteDialog.centro.centro_custo_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -358,16 +374,21 @@ const CentroCustoPage: React.FC = () => {
 
       const result = await response.json();
       if (result.success) {
-        setSnackbar({ open: true, message: 'Centro de custo excluído!', severity: 'success' });
+        setSnackbar({ open: true, message: 'Centro de custo excluído com sucesso!', severity: 'success' });
         carregarCentros();
+        setDeleteDialog({ open: false, centro: null, loading: false });
       } else {
         setSnackbar({ open: true, message: result.message || 'Erro ao excluir', severity: 'error' });
+        setDeleteDialog(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
-    } finally {
-      setLoading(false);
+      setDeleteDialog(prev => ({ ...prev, loading: false }));
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ open: false, centro: null, loading: false });
   };
 
   const handleClose = () => setOpen(false);
@@ -568,7 +589,7 @@ const CentroCustoPage: React.FC = () => {
                     <Download />
                   </IconButton>
                   <IconButton 
-                    onClick={() => handleDelete(centro.centro_custo_id)} 
+                    onClick={() => handleDeleteClick(centro)} 
                     color="error" 
                     size="small"
                   >
@@ -687,6 +708,28 @@ const CentroCustoPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Modal de confirmação para exclusão */}
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Centro de Custo"
+        message="Tem certeza que deseja excluir este centro de custo? Esta ação pode afetar equipamentos e abastecimentos associados."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        severity="error"
+        loading={deleteDialog.loading}
+        destructive={true}
+        itemDetails={deleteDialog.centro ? [
+          { label: 'Nome', value: deleteDialog.centro.nome },
+          { label: 'Código', value: deleteDialog.centro.codigo || 'N/A' },
+          { label: 'Responsável', value: deleteDialog.centro.responsavel || 'N/A' },
+          { label: 'Localização', value: deleteDialog.centro.localizacao || 'N/A' },
+          { label: 'Total Equipamentos', value: deleteDialog.centro.total_equipamentos?.toString() || '0' }
+        ] : []}
+        additionalInfo="ATENÇÃO: Todos os equipamentos e dados associados a este centro de custo podem ser afetados. Verifique se não há dependências antes de prosseguir."
+      />
     </Container>
   );
 };
