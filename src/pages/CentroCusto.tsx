@@ -5,7 +5,7 @@ import {
   Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
   CircularProgress
 } from '@mui/material';
-import { Edit, Delete, Add, Visibility, Business } from '@mui/icons-material';
+import { Edit, Delete, Add, Download, Business } from '@mui/icons-material';
 
 // Interface para Centro de Custo conforme API
 interface CentroCusto {
@@ -51,9 +51,6 @@ const CentroCustoPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   
-  // Estados do modal de visualização
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewCentro, setViewCentro] = useState<CentroCusto | null>(null);
   
   // Estados do modal
   const [nome, setNome] = useState('');
@@ -186,9 +183,114 @@ const CentroCustoPage: React.FC = () => {
     setOpen(true);
   };
 
-  const handleView = (centro: CentroCusto) => {
-    setViewCentro(centro);
-    setViewModalOpen(true);
+  const handleDownload = async (centro: CentroCusto) => {
+    console.log('📥 === FUNÇÃO handleDownload EXECUTADA ===');
+    console.log('📊 Centro recebido:', centro);
+    
+    setLoading(true);
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      // Buscar dados completos do centro de custo
+      const response = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do centro de custo');
+      }
+      
+      const result = await response.json();
+      const centroCustoCompleto = result.success ? result.data : centro;
+      
+      // Buscar estatísticas se disponível
+      let estatisticas = null;
+      try {
+        const estatisticasResponse = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}/estatisticas`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (estatisticasResponse.ok) {
+          const estatisticasResult = await estatisticasResponse.json();
+          estatisticas = estatisticasResult.success ? estatisticasResult.data : null;
+        }
+      } catch (error) {
+        console.warn('Estatísticas não disponíveis:', error);
+      }
+      
+      // Buscar equipamentos se disponível
+      let equipamentos = null;
+      try {
+        const equipamentosResponse = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}/equipamentos`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (equipamentosResponse.ok) {
+          const equipamentosResult = await equipamentosResponse.json();
+          equipamentos = equipamentosResult.success ? equipamentosResult.data : null;
+        }
+      } catch (error) {
+        console.warn('Equipamentos não disponíveis:', error);
+      }
+      
+      // Criar estrutura de dados para download
+      const dadosDownload = {
+        informacoes_basicas: {
+          id: centroCustoCompleto.centro_custo_id,
+          nome: centroCustoCompleto.nome,
+          codigo: centroCustoCompleto.codigo,
+          responsavel: centroCustoCompleto.responsavel,
+          localizacao: centroCustoCompleto.localizacao,
+          ativo: centroCustoCompleto.ativo,
+          observacao: centroCustoCompleto.observacao,
+          email_responsavel: centroCustoCompleto.email_responsavel,
+          orcamento_anual: centroCustoCompleto.orcamento_anual,
+          data_criacao: centroCustoCompleto.criado_em || centroCustoCompleto.created_at
+        },
+        estatisticas: estatisticas,
+        equipamentos: equipamentos,
+        total_equipamentos: centro.total_equipamentos,
+        data_exportacao: new Date().toISOString(),
+        exportado_por: 'Sistema Carmo'
+      };
+      
+      // Criar e baixar arquivo JSON
+      const dataStr = JSON.stringify(dadosDownload, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `centro_custo_${centro.codigo || centro.centro_custo_id}_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setSnackbar({
+        open: true,
+        message: 'Download realizado com sucesso!',
+        severity: 'success'
+      });
+      
+    } catch (error) {
+      console.error('Erro ao fazer download dos dados:', error);
+      setSnackbar({ 
+        open: true, 
+        message: `Erro ao fazer download: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -462,8 +564,8 @@ const CentroCustoPage: React.FC = () => {
                   <IconButton onClick={() => handleEdit(centro)} color="primary" size="small">
                     <Edit />
                   </IconButton>
-                  <IconButton onClick={() => handleView(centro)} color="info" size="small">
-                    <Visibility />
+                  <IconButton onClick={() => handleDownload(centro)} color="success" size="small">
+                    <Download />
                   </IconButton>
                   <IconButton 
                     onClick={() => handleDelete(centro.centro_custo_id)} 
@@ -570,244 +672,6 @@ const CentroCustoPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Modal de Visualização */}
-      <Dialog 
-        open={viewModalOpen} 
-        onClose={() => setViewModalOpen(false)} 
-        maxWidth="md" 
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <Business />
-            <Typography variant="h6">Detalhes do Centro de Custo</Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          {viewCentro && (
-            <Box sx={{ display: 'grid', gap: 3 }}>
-              {/* Informações Básicas */}
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" color="primary" gutterBottom>
-                  Informações Básicas
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Nome:
-                    </Typography>
-                    <Typography variant="body1">{viewCentro.nome}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Código:
-                    </Typography>
-                    <Typography variant="body1">{viewCentro.codigo || 'N/A'}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Responsável:
-                    </Typography>
-                    <Typography variant="body1">{viewCentro.responsavel || 'N/A'}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Localização:
-                    </Typography>
-                    <Typography variant="body1">{viewCentro.localizacao || 'N/A'}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Status:
-                    </Typography>
-                    <Chip 
-                      label={viewCentro.ativo ? 'Ativo' : 'Inativo'} 
-                      color={viewCentro.ativo ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Orçamento Anual:
-                    </Typography>
-                    <Typography variant="body1">
-                      {viewCentro.orcamento_anual ? `€${viewCentro.orcamento_anual.toLocaleString()}` : 'N/A'}
-                    </Typography>
-                  </Box>
-                </Box>
-                
-                {viewCentro.descricao && (
-                  <Box sx={{ mt: 2, gridColumn: '1 / -1' }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Descrição:
-                    </Typography>
-                    <Typography variant="body1">{viewCentro.descricao}</Typography>
-                  </Box>
-                )}
-              </Paper>
-
-              {/* Estatísticas Gerais */}
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" color="primary" gutterBottom>
-                  Estatísticas Gerais
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Total de Equipamentos:
-                    </Typography>
-                    <Typography variant="h4" color="primary">
-                      {viewCentro.total_equipamentos || 0}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Total de Veículos:
-                    </Typography>
-                    <Typography variant="h4" color="secondary">
-                      {viewCentro.veiculos?.[0]?.count || 0}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Total de Abastecimentos:
-                    </Typography>
-                    <Typography variant="h4" color="info.main">
-                      {viewCentro.abastecimentos?.[0]?.count || 0}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Equipamentos com Alerta:
-                    </Typography>
-                    <Typography variant="h4" color={(viewCentro.equipamentos_com_alerta || 0) > 0 ? "error" : "success"}>
-                      {viewCentro.equipamentos_com_alerta || 0}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Abastecimentos Este Mês:
-                    </Typography>
-                    <Typography variant="h4" color="warning.main">
-                      {viewCentro.total_abastecimentos_mes || 0}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Custo Combustível (Mês):
-                    </Typography>
-                    <Typography variant="h4" color="error.main">
-                      €{(viewCentro.custo_combustivel_mes || 0).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-
-              {/* Categorias */}
-              {viewCentro.categorias && viewCentro.categorias.length > 0 && (
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Categorias ({viewCentro.categorias.length})
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {viewCentro.categorias.map((categoria) => (
-                      <Chip
-                        key={categoria.categoria_id}
-                        label={categoria.nome}
-                        variant="outlined"
-                        sx={{ mb: 1 }}
-                      />
-                    ))}
-                  </Box>
-                </Paper>
-              )}
-
-              {/* Equipamentos */}
-              {viewCentro.equipamentos && viewCentro.equipamentos.length > 0 && (
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Equipamentos Associados ({viewCentro.equipamentos.length})
-                  </Typography>
-                  <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
-                    {viewCentro.equipamentos.map((equipamento, index) => (
-                      <Box key={equipamento.equipamento_id || index} sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        p: 1,
-                        mb: 1,
-                        bgcolor: 'background.default',
-                        borderRadius: 1
-                      }}>
-                        <Box>
-                          <Typography variant="body2" fontWeight="bold">
-                            {equipamento.nome}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {equipamento.codigo_ativo} | {equipamento.status_equipamento}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          {equipamento.alerta_manutencao && (
-                            <Chip 
-                              label="Alerta" 
-                              color="error" 
-                              size="small" 
-                            />
-                          )}
-                          <Typography variant="caption" color="text.secondary">
-                            Desde: {new Date(equipamento.data_associacao).toLocaleDateString('pt-BR')}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                </Paper>
-              )}
-
-              {/* Informações de Sistema */}
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" color="primary" gutterBottom>
-                  Informações do Sistema
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Data de Criação:
-                    </Typography>
-                    <Typography variant="body1">
-                      {new Date(viewCentro.criado_em || viewCentro.created_at || new Date()).toLocaleDateString('pt-BR')}
-                    </Typography>
-                  </Box>
-                  {viewCentro.updated_at && (
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Última Atualização:
-                      </Typography>
-                      <Typography variant="body1">
-                        {new Date(viewCentro.updated_at).toLocaleDateString('pt-BR')}
-                      </Typography>
-                    </Box>
-                  )}
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      ID do Centro:
-                    </Typography>
-                    <Typography variant="body1">
-                      {viewCentro.centro_custo_id}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewModalOpen(false)} variant="outlined">
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Snackbar para feedback */}
       <Snackbar

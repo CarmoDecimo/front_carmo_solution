@@ -109,6 +109,13 @@ function App() {
             {/* Módulo 2: Abastecimento */}
             <Route path="/abastecimento" element={<AbastecimentoLista />} />
             <Route path="/abastecimento/adicionar" element={<Abastecimento />} />
+            <Route path="/abastecimento/editar/:id" element={<Abastecimento />} />
+            <Route path="/abastecimento/configuracao" element={
+              <Box sx={{ p: 3 }}>
+                <h2 className="text-2xl font-semibold mb-4">Configuração do Centro de Abastecimento</h2>
+                <p className="text-gray-600">Configure as informações do centro de abastecimento</p>
+              </Box>
+            } />
             
             {/* Módulo 4: Calendário de Manutenção */}
             <Route path="/calendario" element={<CalendarioIndex />} />

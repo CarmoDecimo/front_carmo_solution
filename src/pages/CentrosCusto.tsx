@@ -24,7 +24,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import {
-  Visibility as ViewIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { centroCustoService } from '../services';
 import type { CentroCusto } from '../services';
@@ -71,37 +71,82 @@ const CentrosCustoPage: React.FC = () => {
     }
   };
 
-  const handleViewDetails = async (centro: CentroCusto) => {
-    console.log('🔍 === FUNÇÃO handleViewDetails EXECUTADA ===');
+  const handleDownload = async (centro: CentroCusto) => {
+    console.log('📥 === FUNÇÃO handleDownload EXECUTADA ===');
     console.log('📊 Centro recebido:', centro);
-    console.log('🔑 ID do centro:', centro.id || centro.centro_custo_id);
-    console.log('📝 Nome do centro:', centro.nome);
     
     setLoading(true);
     
     try {
       // Use o ID disponível (pode ser 'id' para lista ou 'centro_custo_id' para detalhes)
       const centroId = centro.id || centro.centro_custo_id?.toString() || '';
-      console.log('ID a ser usado:', centroId);
       
       if (!centroId) {
         throw new Error('ID do centro de custo não encontrado');
       }
       
-      console.log('Chamando API para ID:', centroId);
+      // Buscar dados completos do centro de custo
       const centroCustoCompleto = await centroCustoService.getById(centroId);
       
-      console.log('Dados recebidos da API:', centroCustoCompleto);
+      // Buscar estatísticas se disponível
+      let estatisticas = null;
+      try {
+        estatisticas = await centroCustoService.getEstatisticas(centroId);
+      } catch (error) {
+        console.warn('Estatísticas não disponíveis:', error);
+      }
       
-      setCentroCustoDetalhes(centroCustoCompleto);
-      console.log('Abrindo modal...');
-      setViewModalOpen(true);
+      // Buscar equipamentos se disponível
+      let equipamentos = null;
+      try {
+        const equipamentosResponse = await centroCustoService.getEquipamentos(centroId);
+        equipamentos = equipamentosResponse.data;
+      } catch (error) {
+        console.warn('Equipamentos não disponíveis:', error);
+      }
+      
+      // Criar estrutura de dados para download
+      const dadosDownload = {
+        informacoes_basicas: {
+          id: centroCustoCompleto.id || centroCustoCompleto.centro_custo_id,
+          nome: centroCustoCompleto.nome,
+          codigo: centroCustoCompleto.codigo,
+          descricao: centroCustoCompleto.descricao,
+          responsavel: centroCustoCompleto.responsavel,
+          localizacao: centroCustoCompleto.localizacao,
+          ativo: centroCustoCompleto.ativo,
+          data_criacao: centroCustoCompleto.created_at
+        },
+        estatisticas: estatisticas,
+        equipamentos: equipamentos,
+        data_exportacao: new Date().toISOString(),
+        exportado_por: 'Sistema Carmo'
+      };
+      
+      // Criar e baixar arquivo JSON
+      const dataStr = JSON.stringify(dadosDownload, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `centro_custo_${centro.codigo}_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setSnackbar({
+        open: true,
+        message: 'Download realizado com sucesso!',
+        severity: 'success'
+      });
       
     } catch (error) {
-      console.error('Erro ao carregar detalhes do centro de custo:', error);
+      console.error('Erro ao fazer download dos dados:', error);
       setSnackbar({ 
         open: true, 
-        message: `Erro ao carregar detalhes do centro de custo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        message: `Erro ao fazer download: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
         severity: 'error' 
       });
     } finally {
@@ -163,20 +208,19 @@ const CentrosCustoPage: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Tooltip title="Visualizar detalhes">
+                          <Tooltip title="Baixar dados">
                             <IconButton 
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                console.log('🖱️ BOTÃO CLICADO - Debug detalhado');
-                                console.log('📊 Centro a ser visualizado:', centro);
-                                console.log('📍 Index:', index);
-                                handleViewDetails(centro);
+                                console.log('🖱️ BOTÃO DOWNLOAD CLICADO');
+                                console.log('📊 Centro para download:', centro);
+                                handleDownload(centro);
                               }} 
-                              color="info" 
+                              color="success" 
                               size="small"
                             >
-                              <ViewIcon />
+                              <DownloadIcon />
                             </IconButton>
                           </Tooltip>
                         </TableCell>

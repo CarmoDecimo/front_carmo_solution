@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -46,6 +47,9 @@ interface AbastecimentoLinha {
 }
 
 function Abastecimento() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(id);
   const [cabecalho, setCabecalho] = useState({
     centroCusto: '',
     centroCustoNome: '', // Novo campo para armazenar o nome do centro de custo
@@ -86,6 +90,13 @@ function Abastecimento() {
     fetchEquipamentos();
   }, []);
 
+  // Carregar dados do abastecimento quando estiver em modo de edição
+  useEffect(() => {
+    if (isEditMode && id) {
+      carregarAbastecimento(id);
+    }
+  }, [isEditMode, id]);
+
   // Buscar equipamentos
   const fetchEquipamentos = async () => {
     setLoading(true);
@@ -113,6 +124,53 @@ function Abastecimento() {
       setError('Erro ao carregar equipamentos da API');
       setOpenSnackbar(true);
       setEquipamentos([]); // Lista vazia em caso de erro
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar dados do abastecimento para edição
+  const carregarAbastecimento = async (abastecimentoId: string) => {
+    setLoading(true);
+    try {
+      const abastecimento = await abastecimentoService.getById(abastecimentoId);
+      
+      // Preencher dados do cabeçalho
+      setCabecalho({
+        centroCusto: abastecimento.centro_custo_id || '',
+        centroCustoNome: '',
+        data: new Date(abastecimento.data_abastecimento),
+        existenciaInicio: abastecimento.existencia_inicio?.toString() || '',
+        entradaCombustivel: abastecimento.entrada_combustivel?.toString() || '',
+        posto: abastecimento.posto_abastecimento || '',
+        matricula: abastecimento.matricula_ativo || '',
+        operador: abastecimento.operador || ''
+      });
+
+      // Preencher dados do rodapé
+      setRodape({
+        existenciaFim: abastecimento.existencia_fim?.toString() || '',
+        responsavelFinal: abastecimento.responsavel_abastecimento || ''
+      });
+
+      // Preencher equipamentos se existirem
+      if (abastecimento.equipamentos_abastecimentos) {
+        const linhasCarregadas = abastecimento.equipamentos_abastecimentos.map((eq, index) => ({
+          id: index + 1,
+          equipamento: eq.equipamento || '',
+          activo: eq.activo || '',
+          matricula: eq.matricula || '',
+          quantidade: eq.quantidade || 0,
+          kmh: eq.kmh || null,
+          assinatura: eq.assinatura || ''
+        }));
+        setLinhas(linhasCarregadas);
+      }
+
+      setSuccess('Dados do abastecimento carregados com sucesso!');
+    } catch (error) {
+      console.error('Erro ao carregar abastecimento:', error);
+      setError('Erro ao carregar dados do abastecimento');
     } finally {
       setLoading(false);
     }
@@ -454,15 +512,22 @@ function Abastecimento() {
       });
 
       // Enviar para o backend
-      console.log('🚀 Chamando abastecimentoService.create...');
-      const response = await abastecimentoService.create(dadosEnvio);
+      let response;
+      if (isEditMode && id) {
+        console.log('🚀 Chamando abastecimentoService.update...');
+        response = await abastecimentoService.update(id, dadosEnvio);
+        setSuccess(`Abastecimento atualizado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
+      } else {
+        console.log('🚀 Chamando abastecimentoService.create...');
+        response = await abastecimentoService.create(dadosEnvio);
+        setSuccess(`Abastecimento criado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
+      }
       
-      setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
       setOpenSnackbar(true);
       
-      // Limpar formulário após sucesso
+      // Navegar de volta para a lista após sucesso
       setTimeout(() => {
-        limparTudo();
+        navigate('/abastecimento');
       }, 2000);
 
     } catch (error) {
@@ -495,7 +560,7 @@ function Abastecimento() {
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
       <Box sx={{ padding: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Controle de Abastecimento
+          {isEditMode ? 'Editar Abastecimento' : 'Controle de Abastecimento'}
         </Typography>
 
         {/* Cabeçalho */}
@@ -748,7 +813,7 @@ function Abastecimento() {
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             disabled={loading}
           >
-            {loading ? 'Enviando...' : 'Salvar Abastecimento'}
+            {loading ? 'Enviando...' : (isEditMode ? 'Atualizar Abastecimento' : 'Salvar Abastecimento')}
           </Button>
           
           <Button

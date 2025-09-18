@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Button, Table, TableBody, TableCell, TableHead, TableRow, Paper,
   Typography, Container, Box, Chip, Alert, Snackbar, CircularProgress,
@@ -10,6 +10,7 @@ import { abastecimentoService } from '../services/abastecimentoService';
 import type { Abastecimento } from '../services/abastecimentoService';
 
 const AbastecimentoListaPage: React.FC = () => {
+  const navigate = useNavigate();
   const [abastecimentos, setAbastecimentos] = useState<Abastecimento[]>([]);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -72,9 +73,10 @@ const AbastecimentoListaPage: React.FC = () => {
   };
 
   const handleEdit = (abastecimento: Abastecimento) => {
-    // TODO: Implementar edição
-    console.log('Editar abastecimento:', abastecimento);
+    // Navegar para a página de edição do abastecimento específico
+    navigate(`/abastecimento/editar/${abastecimento.id_abastecimento}`);
   };
+
 
   // Filtrar abastecimentos
   const abastecimentosFiltrados = abastecimentos.filter(abastecimento => {
@@ -97,9 +99,6 @@ const AbastecimentoListaPage: React.FC = () => {
     return matchOperador && matchPosto && matchData;
   });
 
-  const calcularTotalLitros = (equipamentos: any[]) => {
-    return equipamentos.reduce((total, eq) => total + (eq.quantidade || 0), 0);
-  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -307,7 +306,7 @@ const AbastecimentoListaPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Chip 
-                        label={`${calcularTotalLitros(abastecimento.equipamentos_abastecimentos || [])} L`}
+                        label={`${abastecimento.quantidade_combustivel || 0} L`}
                         color="info"
                         size="small"
                       />
