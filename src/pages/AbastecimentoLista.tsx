@@ -5,7 +5,7 @@ import {
   Typography, Container, Box, Chip, Alert, Snackbar, CircularProgress,
   IconButton, TextField, Stack
 } from '@mui/material';
-import { Edit, Delete, Add, Visibility, LocalGasStation } from '@mui/icons-material';
+import { Edit, Delete, Add, Download, LocalGasStation } from '@mui/icons-material';
 import { abastecimentoService } from '../services/abastecimentoService';
 import type { Abastecimento } from '../services/abastecimentoService';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -87,9 +87,68 @@ const AbastecimentoListaPage: React.FC = () => {
     setDeleteDialog({ open: false, abastecimento: null, loading: false });
   };
 
-  const handleView = (abastecimento: Abastecimento) => {
-    // TODO: Implementar modal de visualização ou página de detalhes
-    console.log('Visualizar abastecimento:', abastecimento);
+  const handleDownload = async (abastecimento: Abastecimento) => {
+    console.log('📥 === FUNÇÃO handleDownload EXECUTADA ===');
+    console.log('📊 Abastecimento recebido:', abastecimento);
+    
+    try {
+      // Buscar dados completos do abastecimento
+      const abastecimentoCompleto = await abastecimentoService.getById(abastecimento.id_abastecimento.toString());
+      
+      // Criar estrutura de dados para download
+      const dadosDownload = {
+        informacoes_basicas: {
+          id: abastecimentoCompleto.id_abastecimento,
+          data_abastecimento: abastecimentoCompleto.data_abastecimento,
+          posto_abastecimento: abastecimentoCompleto.posto_abastecimento,
+          matricula_ativo: abastecimentoCompleto.matricula_ativo,
+          operador: abastecimentoCompleto.operador,
+          responsavel_abastecimento: abastecimentoCompleto.responsavel_abastecimento,
+          existencia_inicio: abastecimentoCompleto.existencia_inicio,
+          entrada_combustivel: abastecimentoCompleto.entrada_combustivel,
+          existencia_fim: abastecimentoCompleto.existencia_fim,
+          quantidade_combustivel: abastecimentoCompleto.quantidade_combustivel,
+          custo: abastecimentoCompleto.custo,
+          local_abastecimento: abastecimentoCompleto.local_abastecimento,
+          veiculo_id: abastecimentoCompleto.veiculo_id,
+          quilometragem: abastecimentoCompleto.quilometragem,
+          horimetro: abastecimentoCompleto.horimetro,
+          criado_por: abastecimentoCompleto.criado_por,
+          criado_em: abastecimentoCompleto.criado_em
+        },
+        equipamentos_abastecimentos: abastecimentoCompleto.equipamentos_abastecimentos || [],
+        data_exportacao: new Date().toISOString(),
+        exportado_por: 'Sistema Carmo'
+      };
+      
+      // Criar e baixar arquivo JSON
+      const dataStr = JSON.stringify(dadosDownload, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dataFormatada = new Date(abastecimento.data_abastecimento).toISOString().split('T')[0];
+      link.download = `abastecimento_${abastecimento.id_abastecimento}_${dataFormatada}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      setSnackbar({
+        open: true,
+        message: 'Download realizado com sucesso!',
+        severity: 'success'
+      });
+      
+    } catch (error) {
+      console.error('Erro ao fazer download do abastecimento:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao fazer download do abastecimento',
+        severity: 'error'
+      });
+    }
   };
 
   const handleEdit = (abastecimento: Abastecimento) => {
@@ -348,8 +407,8 @@ const AbastecimentoListaPage: React.FC = () => {
                       <IconButton onClick={() => handleEdit(abastecimento)} color="primary" size="small">
                         <Edit />
                       </IconButton>
-                      <IconButton onClick={() => handleView(abastecimento)} color="info" size="small">
-                        <Visibility />
+                      <IconButton onClick={() => handleDownload(abastecimento)} color="success" size="small">
+                        <Download />
                       </IconButton>
                       <IconButton 
                         onClick={() => handleDeleteClick(abastecimento)} 
