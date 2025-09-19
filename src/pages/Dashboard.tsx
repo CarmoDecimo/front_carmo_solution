@@ -25,7 +25,6 @@ import { useTheme } from '@mui/material/styles';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import BuildIcon from '@mui/icons-material/Build';
 import SpeedIcon from '@mui/icons-material/Speed';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -34,7 +33,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { styled, keyframes } from '@mui/material/styles';
-import { abastecimentoService, centroCustoService } from '../services/abastecimentoService';
+import { abastecimentoService } from '../services/abastecimentoService';
 import { equipamentosService } from '../services/equipamentosService';
 
 // Interfaces para dados dinâmicos
@@ -72,10 +71,21 @@ interface SystemStatus {
   versao: string;
 }
 
+interface NotificationData {
+  id: number;
+  tipo: 'manutencao' | 'abastecimento' | 'alerta' | 'sistema';
+  titulo: string;
+  mensagem: string;
+  data: string;
+  lida: boolean;
+  prioridade: 'alta' | 'media' | 'baixa';
+}
+
 // Hook personalizado para dados do dashboard
 const useDashboardData = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [manutencoes, setManutencoes] = useState<ManutencaoItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
     online: true,
     ultimaAtualizacao: new Date().toLocaleString(),
@@ -214,6 +224,80 @@ const useDashboardData = () => {
     }
   };
 
+  const generateNotifications = (statsData: DashboardStats | null, manutencoesData: ManutencaoItem[]) => {
+    const notifications: NotificationData[] = [];
+    let notificationId = 1;
+
+    // Notificações baseadas em estatísticas
+    if (statsData) {
+      // Alertas críticos
+      if (statsData.alertasAtivos > 5) {
+        notifications.push({
+          id: notificationId++,
+          tipo: 'alerta',
+          titulo: 'Alertas Críticos',
+          mensagem: `${statsData.alertasAtivos} alertas ativos requerem atenção imediata`,
+          data: new Date().toISOString(),
+          lida: false,
+          prioridade: 'alta'
+        });
+      }
+
+      // Manutenções pendentes
+      if (statsData.totalManutencoes > 20) {
+        notifications.push({
+          id: notificationId++,
+          tipo: 'manutencao',
+          titulo: 'Manutenções Pendentes',
+          mensagem: `${statsData.totalManutencoes} equipamentos necessitam manutenção`,
+          data: new Date().toISOString(),
+          lida: false,
+          prioridade: 'media'
+        });
+      }
+
+      // Combustível baixo
+      if (statsData.totalCombustivel < 1000) {
+        notifications.push({
+          id: notificationId++,
+          tipo: 'abastecimento',
+          titulo: 'Estoque de Combustível',
+          mensagem: `Estoque baixo: ${statsData.totalCombustivel}L disponíveis`,
+          data: new Date().toISOString(),
+          lida: false,
+          prioridade: 'media'
+        });
+      }
+    }
+
+    // Notificações baseadas em manutenções
+    const manutencoesAtrasadas = manutencoesData.filter(m => m.status === 'atrasado');
+    if (manutencoesAtrasadas.length > 0) {
+      notifications.push({
+        id: notificationId++,
+        tipo: 'manutencao',
+        titulo: 'Manutenções Atrasadas',
+        mensagem: `${manutencoesAtrasadas.length} manutenções estão atrasadas`,
+        data: new Date().toISOString(),
+        lida: false,
+        prioridade: 'alta'
+      });
+    }
+
+    // Notificação de sistema online
+    notifications.push({
+      id: notificationId++,
+      tipo: 'sistema',
+      titulo: 'Sistema Operacional',
+      mensagem: 'Todos os sistemas funcionando normalmente',
+      data: new Date().toISOString(),
+      lida: false,
+      prioridade: 'baixa'
+    });
+
+    setNotifications(notifications);
+  };
+
   const refreshData = async () => {
     setLoading(true);
     setError(null);
@@ -228,6 +312,9 @@ const useDashboardData = () => {
         ...prev,
         ultimaAtualizacao: new Date().toLocaleString()
       }));
+
+      // Gerar notificações baseadas nos dados carregados
+      generateNotifications(stats, manutencoes);
     } catch (err) {
       setError('Erro ao atualizar dados do dashboard');
     } finally {
@@ -247,6 +334,7 @@ const useDashboardData = () => {
   return {
     stats,
     manutencoes,
+    notifications,
     systemStatus,
     loading,
     error,
@@ -677,6 +765,7 @@ function Dashboard() {
     servicosAbertos: 0
   });
 
+
   const [showError, setShowError] = useState(false);
 
   // Animação dos números quando os dados chegam
@@ -762,7 +851,7 @@ function Dashboard() {
     { 
       title: 'Alertas', 
       value: animatedValues.alertasAtivos, 
-      icon: NotificationsIcon, 
+      icon: WarningIcon, 
       bgcolor: 'linear-gradient(135deg, #f44336 0%, #ef5350 100%)', 
       trend: stats.tendencias.alertas.valor, 
       trendUp: stats.tendencias.alertas.positiva 
@@ -941,7 +1030,7 @@ function Dashboard() {
               {[
                 { title: 'Oficina', description: 'Gerencie inspeções, serviços e comunicação da oficina.', icon: ConstructionIcon, path: '/oficina', gradient: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)' },
                 { title: 'Abastecimento', description: 'Controle de abastecimentos e atualização automática de horímetros.', icon: LocalGasStationIcon, path: '/abastecimento', gradient: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)' },
-                { title: 'Alertas', description: 'Visualize todos os alertas automáticos e manuais de manutenção.', icon: NotificationsIcon, path: '/alertas', gradient: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)' },
+                { title: 'Alertas', description: 'Visualize todos os alertas automáticos e manuais de manutenção.', icon: WarningIcon, path: '/alertas', gradient: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)' },
                 { title: 'Calendário', description: 'Visualize o mapa de manutenções e gere relatórios de manutenções.', icon: CalendarMonthIcon, path: '/calendario', gradient: 'linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%)' }
               ].map((module, index) => (
                 <Grid key={module.title} size={{ xs: 12, sm: 6, md: 3 }}>
