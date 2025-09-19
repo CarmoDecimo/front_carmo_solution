@@ -814,13 +814,13 @@ function Dashboard() {
     }
   }, [error]);
 
-  // Cards dinâmicos com dados das tendências
+  // Cards dinâmicos com cores corporativas
   const statCards = stats ? [
     { 
       title: 'Abastecimentos', 
       value: animatedValues.totalAbastecimentos, 
       icon: LocalGasStationIcon, 
-      bgcolor: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)', 
+      bgcolor: 'linear-gradient(135deg, #37474f 0%, #546e7a 100%)', 
       trend: stats.tendencias.abastecimentos.valor, 
       trendUp: stats.tendencias.abastecimentos.positiva 
     },
@@ -828,7 +828,7 @@ function Dashboard() {
       title: 'Combustível Total', 
       value: `${animatedValues.totalCombustivel}L`, 
       icon: LocalGasStationIcon, 
-      bgcolor: 'linear-gradient(135deg, #00acc1 0%, #26c6da 100%)', 
+      bgcolor: 'linear-gradient(135deg, #455a64 0%, #607d8b 100%)', 
       trend: stats.tendencias.combustivel.valor, 
       trendUp: stats.tendencias.combustivel.positiva 
     },
@@ -836,7 +836,7 @@ function Dashboard() {
       title: 'Manutenções', 
       value: animatedValues.totalManutencoes, 
       icon: BuildIcon, 
-      bgcolor: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)', 
+      bgcolor: 'linear-gradient(135deg, #5d4037 0%, #795548 100%)', 
       trend: stats.tendencias.manutencoes.valor, 
       trendUp: stats.tendencias.manutencoes.positiva 
     },
@@ -844,7 +844,7 @@ function Dashboard() {
       title: 'Equipamentos', 
       value: animatedValues.equipamentosAtivos, 
       icon: SpeedIcon, 
-      bgcolor: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)', 
+      bgcolor: 'linear-gradient(135deg, #424242 0%, #616161 100%)', 
       trend: stats.tendencias.equipamentos.valor, 
       trendUp: stats.tendencias.equipamentos.positiva 
     },
@@ -852,7 +852,7 @@ function Dashboard() {
       title: 'Alertas', 
       value: animatedValues.alertasAtivos, 
       icon: WarningIcon, 
-      bgcolor: 'linear-gradient(135deg, #f44336 0%, #ef5350 100%)', 
+      bgcolor: 'linear-gradient(135deg, #6d4c41 0%, #8d6e63 100%)', 
       trend: stats.tendencias.alertas.valor, 
       trendUp: stats.tendencias.alertas.positiva 
     },
@@ -860,7 +860,7 @@ function Dashboard() {
       title: 'Serviços', 
       value: animatedValues.servicosAbertos, 
       icon: ConstructionIcon, 
-      bgcolor: 'linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%)', 
+      bgcolor: 'linear-gradient(135deg, #4e342e 0%, #6d4c41 100%)', 
       trend: stats.tendencias.servicos.valor, 
       trendUp: stats.tendencias.servicos.positiva 
     }
@@ -1028,10 +1028,10 @@ function Dashboard() {
             </Typography>
             <Grid container spacing={{ xs: 2, md: 3 }}>
               {[
-                { title: 'Oficina', description: 'Gerencie inspeções, serviços e comunicação da oficina.', icon: ConstructionIcon, path: '/oficina', gradient: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)' },
-                { title: 'Abastecimento', description: 'Controle de abastecimentos e atualização automática de horímetros.', icon: LocalGasStationIcon, path: '/abastecimento', gradient: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)' },
-                { title: 'Alertas', description: 'Visualize todos os alertas automáticos e manuais de manutenção.', icon: WarningIcon, path: '/alertas', gradient: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)' },
-                { title: 'Calendário', description: 'Visualize o mapa de manutenções e gere relatórios de manutenções.', icon: CalendarMonthIcon, path: '/calendario', gradient: 'linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%)' }
+                { title: 'Oficina', description: 'Gerencie inspeções, serviços e comunicação da oficina.', icon: ConstructionIcon, path: '/oficina' },
+                { title: 'Abastecimento', description: 'Controle de abastecimentos e atualização automática de horímetros.', icon: LocalGasStationIcon, path: '/abastecimento' },
+                { title: 'Alertas', description: 'Visualize todos os alertas automáticos e manuais de manutenção.', icon: WarningIcon, path: '/alertas' },
+                { title: 'Calendário', description: 'Visualize o mapa de manutenções e gere relatórios de manutenções.', icon: CalendarMonthIcon, path: '/calendario' }
               ].map((module, index) => (
                 <Grid key={module.title} size={{ xs: 12, sm: 6, md: 3 }}>
                   <Grow in timeout={1600 + index * 200}>

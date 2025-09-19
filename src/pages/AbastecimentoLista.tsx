@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button, Table, TableBody, TableCell, TableHead, TableRow, Paper,
   Typography, Container, Box, Chip, Alert, Snackbar, CircularProgress,
-  IconButton, TextField, Stack
+  IconButton, TextField, Stack, useMediaQuery, Card, CardContent, Grid
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Edit, Delete, Add, Download, LocalGasStation } from '@mui/icons-material';
 import { abastecimentoService } from '../services/abastecimentoService';
 import type { Abastecimento } from '../services/abastecimentoService';
@@ -12,6 +13,8 @@ import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const AbastecimentoListaPage: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [abastecimentos, setAbastecimentos] = useState<Abastecimento[]>([]);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -244,17 +247,122 @@ const AbastecimentoListaPage: React.FC = () => {
         </Stack>
       </Paper>
 
-      {/* Tabela */}
-      <Paper sx={{ overflow: 'hidden', boxShadow: 3 }}>
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress />
-          </Box>
-        )}
-        
-        {!loading && (
+      {/* Conteúdo Responsivo */}
+      {loading && (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <CircularProgress />
+          <Typography sx={{ mt: 2 }}>Carregando abastecimentos...</Typography>
+        </Paper>
+      )}
+      
+      {!loading && isMobile ? (
+        // Layout Mobile - Cards
+        <Grid container spacing={2}>
+          {abastecimentosFiltrados.map((abastecimento) => (
+            <Grid key={abastecimento.id_abastecimento} size={12}>
+              <Card sx={{ mb: 2, boxShadow: 2 }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      {new Date(abastecimento.data_abastecimento).toLocaleDateString('pt-BR')}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton onClick={() => handleEdit(abastecimento)} color="primary" size="small">
+                        <Edit />
+                      </IconButton>
+                      <IconButton 
+                        onClick={() => setDeleteDialog({ open: true, abastecimento, loading: false })} 
+                        color="error" 
+                        size="small"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                  
+                  <Stack spacing={1.5}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Operador</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.operador}</Typography>
+                    </Box>
+                    
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Posto de Abastecimento</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.posto_abastecimento}</Typography>
+                    </Box>
+                    
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Matrícula Ativo</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.matricula_ativo}</Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Equipamentos</Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip 
+                            label={abastecimento.equipamentos_abastecimentos?.length || 0}
+                            color="primary"
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+                      </Box>
+                      
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Total Litros</Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip 
+                            label={`${abastecimento.quantidade_combustivel || 0} L`}
+                            color="info"
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                    </Box>
+                    
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Responsável</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.responsavel_abastecimento}</Typography>
+                    </Box>
+                    
+                    {abastecimento.numero_protocolo && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Protocolo</Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip 
+                            label={abastecimento.numero_protocolo}
+                            color="success"
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Box>
+                      </Box>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+          
+          {abastecimentosFiltrados.length === 0 && (
+            <Grid size={12}>
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography color="textSecondary">
+                  {abastecimentos.length === 0 
+                    ? 'Nenhum abastecimento encontrado' 
+                    : 'Nenhum abastecimento corresponde aos filtros aplicados'
+                  }
+                </Typography>
+              </Paper>
+            </Grid>
+          )}
+        </Grid>
+      ) : (
+        // Layout Desktop - Tabela
+        <Paper sx={{ overflow: 'hidden', boxShadow: 3 }}>
           <Box sx={{ overflow: 'auto', width: '100%' }}>
-            <Table sx={{ minWidth: { xs: 800, md: 1200 } }}>
+            <Table sx={{ minWidth: 1200 }}>
               <TableHead>
                 <TableRow sx={{ 
                   background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
@@ -434,8 +542,8 @@ const AbastecimentoListaPage: React.FC = () => {
               </TableBody>
             </Table>
           </Box>
-        )}
-      </Paper>
+        </Paper>
+      )}
 
       {/* Snackbar para feedback */}
       <Snackbar

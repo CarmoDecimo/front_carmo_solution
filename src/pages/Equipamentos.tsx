@@ -3,8 +3,9 @@ import {
   Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, Table, TableBody, TableCell, TableHead, TableRow, Paper,
   Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
-  Tooltip, Select, MenuItem, FormControl, InputLabel
+  Tooltip, Select, MenuItem, FormControl, InputLabel, useMediaQuery, Card, CardContent, Grid, Stack
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { 
   Edit, Delete, Add, Visibility, Construction, Warning, Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
@@ -49,6 +50,8 @@ interface CentroCusto {
 }
 
 const EquipamentosPage: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
