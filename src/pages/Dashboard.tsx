@@ -910,9 +910,6 @@ function Dashboard() {
                       Dashboard
                     </Typography>
                   </Box>
-                  <Typography variant={isMobile ? "body1" : "h6"} color="text.secondary" sx={{ mt: 1, fontWeight: 400 }}>
-                    Sistema de Gestão Carmo v{systemStatus.versao}
-                  </Typography>
                 </Box>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip 
