@@ -14,6 +14,7 @@ import Manutencao from './pages/Manutencao';
 import OficinaPage from './pages/Oficina';
 import CalendarioIndex from './pages/CalendarioIndex';
 import GestaoUsuarios from './pages/GestaoUsuarios';
+import AlertasPage from './pages/Alertas';
 import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import { AuthProvider } from './contexts/auth/AuthContext';
@@ -116,6 +117,9 @@ function App() {
                 <p className="text-gray-600">Configure as informações do centro de abastecimento</p>
               </Box>
             } />
+            
+            {/* Módulo 3: Alertas */}
+            <Route path="/alertas" element={<AlertasPage />} />
             
             {/* Módulo 4: Calendário de Manutenção */}
             <Route path="/calendario" element={<CalendarioIndex />} />

@@ -22,6 +22,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 interface SidebarProps {
   open: boolean;
@@ -74,6 +75,9 @@ function Sidebar({ open, onClose }: SidebarProps) {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Centro de custo', icon: <AccountBalanceIcon />, path: '/centro-custo' },
     
+    // Módulo 2: Abastecimento (movido para depois do Centro de custo)
+    { text: 'Centro de abastecimento', icon: <LocalGasStationIcon />, path: '/abastecimento' },
+    
     // Módulo Equipamentos
     { 
       text: 'Equipamentos', 
@@ -99,10 +103,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
       ]
     },
     
-    // Módulo 2: Abastecimento
-    { text: 'Centro de abastecimento', icon: <LocalGasStationIcon />, path: '/abastecimento' },
-    
-    // Módulo 3: Calendário de Manutenção
+    // Módulo 4: Calendário de Manutenção
     { 
       text: 'Calendário de Manutenção', 
       icon: <CalendarMonthIcon />, 
@@ -113,7 +114,10 @@ function Sidebar({ open, onClose }: SidebarProps) {
       ]
     },
     
-    // Módulo 4: Gestão de Usuários
+    // Módulo 3: Alertas (depois do Calendário)
+    { text: 'Alertas', icon: <NotificationsActiveIcon />, path: '/alertas' },
+    
+    // Módulo 5: Gestão de Usuários
     { text: 'Gestão de Usuários', icon: <PeopleIcon />, path: '/usuarios' }
   ];
 

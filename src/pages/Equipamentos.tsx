@@ -3,9 +3,8 @@ import {
   Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, Table, TableBody, TableCell, TableHead, TableRow, Paper,
   Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
-  Tooltip, Select, MenuItem, FormControl, InputLabel, useMediaQuery, Card, CardContent, Grid, Stack
+  Tooltip, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { 
   Edit, Delete, Add, Visibility, Construction, Warning, Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
@@ -50,8 +49,6 @@ interface CentroCusto {
 }
 
 const EquipamentosPage: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -114,7 +111,7 @@ const EquipamentosPage: React.FC = () => {
   // Carregar dados ao montar componente
   useEffect(() => {
     carregarDados();
-  }, [filtros]);
+  }, [filtros]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recarregar categorias quando a página receber foco (para sincronizar com mudanças)
   useEffect(() => {
@@ -182,7 +179,7 @@ const EquipamentosPage: React.FC = () => {
       if (result.success) {
         setCentrosCusto(result.data);
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn('API de centros de custo não disponível, usando dados mockados');
       // Dados mockados para demonstração
       setCentrosCusto([
@@ -284,10 +281,11 @@ const EquipamentosPage: React.FC = () => {
         });
         setOpen(false);
         carregarEquipamentos();
+        setManutencaoModalOpen(false);
       } else {
         setSnackbar({ open: true, message: result.message || 'Erro ao salvar', severity: 'error' });
       }
-    } catch (error) {
+    } catch (_error) {
       setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
     } finally {
       setLoading(false);
@@ -324,7 +322,7 @@ const EquipamentosPage: React.FC = () => {
         setSnackbar({ open: true, message: result.message || 'Erro ao excluir', severity: 'error' });
         setDeleteDialog(prev => ({ ...prev, loading: false }));
       }
-    } catch (error) {
+    } catch (_error) {
       setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
       setDeleteDialog(prev => ({ ...prev, loading: false }));
     }
@@ -371,7 +369,7 @@ const EquipamentosPage: React.FC = () => {
       } else {
         setSnackbar({ open: true, message: result.message || 'Erro ao atualizar horímetro', severity: 'error' });
       }
-    } catch (error) {
+    } catch (_error) {
       setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
     } finally {
       setLoading(false);
@@ -419,7 +417,7 @@ const EquipamentosPage: React.FC = () => {
       } else {
         setSnackbar({ open: true, message: result.message || 'Erro ao registrar manutenção', severity: 'error' });
       }
-    } catch (error) {
+    } catch (_error) {
       setSnackbar({ open: true, message: 'Erro de conexão', severity: 'error' });
     } finally {
       setLoading(false);

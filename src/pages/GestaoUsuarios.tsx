@@ -128,7 +128,7 @@ function GestaoUsuarios() {
 
   useEffect(() => {
     fetchUsers(1, search);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Busca com debounce
   const handleSearchChange = (value: string) => {

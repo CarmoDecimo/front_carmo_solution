@@ -1,27 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
-import Button from '@mui/material/Button';
-import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import Chip from '@mui/material/Chip';
-import Avatar from '@mui/material/Avatar';
-import Fade from '@mui/material/Fade';
-import Grow from '@mui/material/Grow';
-import LinearProgress from '@mui/material/LinearProgress';
-import Skeleton from '@mui/material/Skeleton';
-import CircularProgress from '@mui/material/CircularProgress';
-import Snackbar from '@mui/material/Snackbar';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import React, { useState, useEffect } from 'react';
+import {
+  Container, Typography, Box, Card, CardContent, Grid, Stack, Paper,
+  Chip, Avatar, Button, CardActions, Alert, Fade, Grow, Skeleton,
+  CircularProgress, Snackbar, useMediaQuery, LinearProgress, AlertTitle
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { Link, useNavigate } from 'react-router-dom';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import BuildIcon from '@mui/icons-material/Build';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -32,9 +16,40 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import OpacityIcon from '@mui/icons-material/Opacity';
+import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
+import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { styled, keyframes } from '@mui/material/styles';
 import { abastecimentoService } from '../services/abastecimentoService';
 import { equipamentosService } from '../services/equipamentosService';
+
+// Interface para centros de custo
+
+interface CentroData {
+  id?: number;
+  centro_custo_id: number;
+  nome: string;
+  codigo?: string;
+  responsavel?: string;
+  ativo: boolean;
+  criado_em?: string;
+  created_at?: string;
+  estatisticas?: {
+    equipamentos: {
+      total: number;
+      ativos: number;
+      inativos: number;
+    };
+    abastecimentos: {
+      total: number;
+      total_litros: number;
+      total_valor: number;
+    };
+  };
+  [key: string]: any;
+}
 
 // Interfaces para dados dinâmicos
 interface DashboardStats {
@@ -107,8 +122,8 @@ const useDashboardData = () => {
       const totalAbastecimentos = abastecimentosResponse.totalCount || abastecimentosResponse.data?.length || 0;
       
       // Somar combustível dos abastecimentos diretos + estatísticas dos centros de custo
-      let totalCombustivel = abastecimentosResponse.data?.reduce((total: number, abast: any) => {
-        return total + (abast.quantidade_combustivel || abast.entrada_combustivel || 0);
+      const totalCombustivel = abastecimentosResponse.data?.reduce((total: number, abast: any) => {
+        return total + (abast.quantidade_combustivel || 0);
       }, 0) || 0;
 
       const equipamentosAtivos = equipamentosResponse.filter((eq: any) => eq.status_equipamento === 'ativo').length;
@@ -201,14 +216,14 @@ const useDashboardData = () => {
         }
 
         return {
-          id: equipamento.equipamento_id,
-          veiculo: equipamento.nome || equipamento.codigo_ativo,
+          id: equipamento.equipamento_id || equipamento.id,
+          veiculo: equipamento.equipamento_nome || equipamento.nome || equipamento.codigo_ativo,
           tipo: 'Manutenção Preventiva',
           data: dataEstimada.toLocaleDateString('pt-BR'),
-          kmPrev: equipamento.proxima_revisao_horimetro?.toString() || 'N/A',
+          kmPrev: equipamento.proxima_revisao_horimetro?.toString() || equipamento.proxima_manutencao?.toString() || 'N/A',
           status: isAtrasado ? 'atrasado' : 'pendente',
           prioridade: equipamento.horas_para_vencer <= 50 ? 'alta' : 'media',
-          responsavel: equipamento.centros_custo?.nome || 'Não definido'
+          responsavel: equipamento.centros_custo?.nome || equipamento.centro_custo || 'Não definido'
         };
       });
 
@@ -315,7 +330,8 @@ const useDashboardData = () => {
 
       // Gerar notificações baseadas nos dados carregados
       generateNotifications(stats, manutencoes);
-    } catch (err) {
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
       setError('Erro ao atualizar dados do dashboard');
     } finally {
       setLoading(false);
@@ -329,7 +345,7 @@ const useDashboardData = () => {
     const interval = setInterval(refreshData, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     stats,
@@ -479,7 +495,8 @@ const AnimatedProgress = styled(LinearProgress)(({ theme }) => ({
 const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void }> = ({ loading: dashboardLoading, refreshData }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [centrosCusto, setCentrosCusto] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [centrosCusto, setCentrosCusto] = useState<CentroData[]>([]);
   const [loading, setLoading] = useState(false);
 
   const carregarCentrosCusto = async () => {
@@ -505,7 +522,7 @@ const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void 
         console.log('📊 Primeiro centro:', centros[0]);
         
         // Ordenar por data de criação (mais recentes primeiro) e pegar os 3 últimos
-        const centrosOrdenados = centros.sort((a: any, b: any) => {
+        const centrosOrdenados = centros.sort((a: CentroData, b: CentroData) => {
           const dataA = new Date(a.criado_em || a.created_at || 0);
           const dataB = new Date(b.criado_em || b.created_at || 0);
           return dataB.getTime() - dataA.getTime(); // Decrescente (mais recentes primeiro)
@@ -517,7 +534,7 @@ const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void 
         
         // Para cada centro, tentar buscar estatísticas
         const centrosComEstatisticas = await Promise.all(
-          ultimos3.map(async (centro: any) => {
+          ultimos3.map(async (centro: CentroData) => {
             try {
               const centroId = centro.centro_custo_id;
               console.log(`📡 Buscando estatísticas do centro ${centro.nome} (ID: ${centroId})`);
@@ -599,10 +616,20 @@ const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void 
           ))
         ) : centrosCusto.length > 0 ? (
           // Renderizar centros de custo
-          centrosCusto.map((centro: any, index: number) => (
+          centrosCusto.map((centro: CentroData, index: number) => (
             <Grid key={centro.id || centro.centro_custo_id || index} size={{ xs: 12, md: 4 }}>
               <Grow in timeout={1800 + index * 200}>
-                <StatCard>
+                <StatCard 
+                  onClick={() => navigate('/centro-custo')}
+                  sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4,
+                      transition: 'all 0.2s ease-in-out'
+                    }
+                  }}
+                >
                   <CardContent sx={{ p: { xs: 2, md: 3 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -621,7 +648,7 @@ const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void 
                       Código: {centro.codigo || 'N/A'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                      Criado em: {new Date(centro.criado_em || centro.created_at).toLocaleDateString('pt-BR')}
+                      Criado em: {centro.criado_em || centro.created_at ? new Date(centro.criado_em || centro.created_at || '').toLocaleDateString('pt-BR') : 'N/A'}
                     </Typography>
                     
                     <Stack spacing={1.5}>
@@ -814,12 +841,12 @@ function Dashboard() {
     }
   }, [error]);
 
-  // Cards dinâmicos com cores corporativas
+  // Cards dinâmicos com cores corporativas e ícones específicos
   const statCards = stats ? [
     { 
       title: 'Abastecimentos', 
       value: animatedValues.totalAbastecimentos, 
-      icon: LocalGasStationIcon, 
+      icon: DirectionsCarIcon, 
       bgcolor: 'linear-gradient(135deg, #37474f 0%, #546e7a 100%)', 
       trend: stats.tendencias.abastecimentos.valor, 
       trendUp: stats.tendencias.abastecimentos.positiva 
@@ -827,7 +854,7 @@ function Dashboard() {
     { 
       title: 'Combustível Total', 
       value: `${animatedValues.totalCombustivel}L`, 
-      icon: LocalGasStationIcon, 
+      icon: OpacityIcon, 
       bgcolor: 'linear-gradient(135deg, #455a64 0%, #607d8b 100%)', 
       trend: stats.tendencias.combustivel.valor, 
       trendUp: stats.tendencias.combustivel.positiva 
@@ -843,7 +870,7 @@ function Dashboard() {
     { 
       title: 'Equipamentos', 
       value: animatedValues.equipamentosAtivos, 
-      icon: SpeedIcon, 
+      icon: PrecisionManufacturingIcon, 
       bgcolor: 'linear-gradient(135deg, #424242 0%, #616161 100%)', 
       trend: stats.tendencias.equipamentos.valor, 
       trendUp: stats.tendencias.equipamentos.positiva 
@@ -851,7 +878,7 @@ function Dashboard() {
     { 
       title: 'Alertas', 
       value: animatedValues.alertasAtivos, 
-      icon: WarningIcon, 
+      icon: NotificationsActiveIcon, 
       bgcolor: 'linear-gradient(135deg, #6d4c41 0%, #8d6e63 100%)', 
       trend: stats.tendencias.alertas.valor, 
       trendUp: stats.tendencias.alertas.positiva 
@@ -859,7 +886,7 @@ function Dashboard() {
     { 
       title: 'Serviços', 
       value: animatedValues.servicosAbertos, 
-      icon: ConstructionIcon, 
+      icon: MiscellaneousServicesIcon, 
       bgcolor: 'linear-gradient(135deg, #4e342e 0%, #6d4c41 100%)', 
       trend: stats.tendencias.servicos.valor, 
       trendUp: stats.tendencias.servicos.positiva 
