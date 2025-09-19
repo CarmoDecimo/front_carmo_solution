@@ -93,13 +93,6 @@ const AbastecimentoListaPage: React.FC = () => {
     console.log('🆔 ID do abastecimento:', abastecimento.id_abastecimento);
     
     try {
-      // Mostrar loading
-      setSnackbar({
-        open: true,
-        message: 'Preparando download do abastecimento...',
-        severity: 'info'
-      });
-
       // Fazer requisição para download do abastecimento usando a nova rota
       console.log('🔄 Iniciando requisição para download...');
       const blob = await abastecimentoService.downloadAbastecimento(abastecimento.id_abastecimento.toString());
