@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button, Table, TableBody, TableCell, TableHead, TableRow, Paper,
   Typography, Container, Box, Chip, Alert, Snackbar, CircularProgress,
-  IconButton, TextField, Stack, useMediaQuery, Card, CardContent, Grid
+  IconButton, TextField, Stack, useMediaQuery, Card, CardContent, Grid,
+  Dialog, DialogTitle, DialogContent, DialogActions, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Edit, Delete, Add, Download, LocalGasStation } from '@mui/icons-material';
+import { Edit, Delete, Add, Download, LocalGasStation, Visibility } from '@mui/icons-material';
 import { abastecimentoService } from '../services/abastecimentoService';
 import type { Abastecimento } from '../services/abastecimentoService';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -24,6 +25,12 @@ const AbastecimentoListaPage: React.FC = () => {
     open: false,
     abastecimento: null as Abastecimento | null,
     loading: false
+  });
+  
+  // Estados para modal de visualização
+  const [viewDialog, setViewDialog] = useState({
+    open: false,
+    abastecimento: null as Abastecimento | null
   });
   
   // Estados de filtros
@@ -158,6 +165,17 @@ const AbastecimentoListaPage: React.FC = () => {
     navigate(`/abastecimento/editar/${abastecimento.id_abastecimento}`);
   };
 
+  const handleView = (abastecimento: Abastecimento) => {
+    setViewDialog({
+      open: true,
+      abastecimento
+    });
+  };
+
+  const handleViewClose = () => {
+    setViewDialog({ open: false, abastecimento: null });
+  };
+
 
   // Filtrar abastecimentos
   const abastecimentosFiltrados = abastecimentos.filter(abastecimento => {
@@ -267,6 +285,9 @@ const AbastecimentoListaPage: React.FC = () => {
                       {new Date(abastecimento.data_abastecimento).toLocaleDateString('pt-BR')}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton onClick={() => handleView(abastecimento)} color="info" size="small">
+                        <Visibility />
+                      </IconButton>
                       <IconButton onClick={() => handleEdit(abastecimento)} color="primary" size="small">
                         <Edit />
                       </IconButton>
@@ -291,10 +312,6 @@ const AbastecimentoListaPage: React.FC = () => {
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.posto_abastecimento}</Typography>
                     </Box>
                     
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Matrícula Ativo</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.matricula_ativo}</Typography>
-                    </Box>
                     
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                       <Box>
@@ -319,6 +336,17 @@ const AbastecimentoListaPage: React.FC = () => {
                           />
                         </Box>
                       </Box>
+                      
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Custo</Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip 
+                            label={abastecimento.custo ? `${abastecimento.custo.toFixed(2)} Kz` : 'N/A'}
+                            color="success"
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
                     </Box>
                     
                     <Box>
@@ -326,19 +354,6 @@ const AbastecimentoListaPage: React.FC = () => {
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>{abastecimento.responsavel_abastecimento}</Typography>
                     </Box>
                     
-                    {abastecimento.numero_protocolo && (
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Protocolo</Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          <Chip 
-                            label={abastecimento.numero_protocolo}
-                            color="success"
-                            size="small"
-                            variant="outlined"
-                          />
-                        </Box>
-                      </Box>
-                    )}
                   </Stack>
                 </CardContent>
               </Card>
@@ -412,17 +427,6 @@ const AbastecimentoListaPage: React.FC = () => {
                     backgroundColor: 'transparent',
                     py: 2,
                     textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                    minWidth: 120
-                  }}>
-                    Matrícula Ativo
-                  </TableCell>
-                  <TableCell sx={{ 
-                    color: 'white', 
-                    fontWeight: 'bold', 
-                    fontSize: '0.95rem',
-                    backgroundColor: 'transparent',
-                    py: 2,
-                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
                     minWidth: 100
                   }}>
                     Equipamentos
@@ -456,9 +460,9 @@ const AbastecimentoListaPage: React.FC = () => {
                     backgroundColor: 'transparent',
                     py: 2,
                     textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                    minWidth: 120
+                    minWidth: 100
                   }}>
-                    Protocolo
+                    Custo
                   </TableCell>
                   <TableCell sx={{ 
                     color: 'white', 
@@ -481,7 +485,6 @@ const AbastecimentoListaPage: React.FC = () => {
                     </TableCell>
                     <TableCell>{abastecimento.operador}</TableCell>
                     <TableCell>{abastecimento.posto_abastecimento}</TableCell>
-                    <TableCell>{abastecimento.matricula_ativo}</TableCell>
                     <TableCell>
                       <Chip 
                         label={abastecimento.equipamentos_abastecimentos?.length || 0}
@@ -499,18 +502,20 @@ const AbastecimentoListaPage: React.FC = () => {
                     </TableCell>
                     <TableCell>{abastecimento.responsavel_abastecimento}</TableCell>
                     <TableCell>
-                      {abastecimento.numero_protocolo ? (
+                      {abastecimento.custo ? (
                         <Chip 
-                          label={abastecimento.numero_protocolo}
+                          label={`${abastecimento.custo.toFixed(2)} Kz`}
                           color="success"
                           size="small"
-                          variant="outlined"
                         />
                       ) : (
-                        <Typography variant="body2" color="text.secondary">-</Typography>
+                        <Typography variant="body2" color="text.secondary">N/A</Typography>
                       )}
                     </TableCell>
                     <TableCell align="center">
+                      <IconButton onClick={() => handleView(abastecimento)} color="info" size="small">
+                        <Visibility />
+                      </IconButton>
                       <IconButton onClick={() => handleEdit(abastecimento)} color="primary" size="small">
                         <Edit />
                       </IconButton>
@@ -529,7 +534,7 @@ const AbastecimentoListaPage: React.FC = () => {
                 ))}
                 {abastecimentosFiltrados.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <Typography color="textSecondary">
                         {abastecimentos.length === 0 
                           ? 'Nenhum abastecimento encontrado' 
@@ -560,6 +565,296 @@ const AbastecimentoListaPage: React.FC = () => {
         </Alert>
       </Snackbar>
 
+      {/* Modal de Visualização */}
+      <Dialog 
+        open={viewDialog.open} 
+        onClose={handleViewClose} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: { maxHeight: '90vh' }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+          color: 'white',
+          textAlign: 'center',
+          fontWeight: 'bold'
+        }}>
+          Detalhes do Abastecimento - {viewDialog.abastecimento?.posto_abastecimento}
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          {viewDialog.abastecimento && (
+            <Stack spacing={3}>
+              {/* Informações Gerais */}
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 'bold' }}>
+                  Informações Gerais
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Data do Abastecimento</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {new Date(viewDialog.abastecimento.data_abastecimento).toLocaleDateString('pt-BR')}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Centro de Custo ID</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {viewDialog.abastecimento.centro_custo_id}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Operador</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {viewDialog.abastecimento.operador}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Posto de Abastecimento</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {viewDialog.abastecimento.posto_abastecimento}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              <Divider />
+
+              {/* Combustível e Custos */}
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 'bold' }}>
+                  Combustível e Custos
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={4}>
+                    <Box sx={{ 
+                      p: 2.5, 
+                      bgcolor: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)', 
+                      borderRadius: 2, 
+                      textAlign: 'center', 
+                      border: 2, 
+                      borderColor: '#1976d2',
+                      boxShadow: '0 2px 8px rgba(25, 118, 210, 0.2)',
+                      transition: 'transform 0.2s ease-in-out',
+                      '&:hover': { transform: 'translateY(-2px)' }
+                    }}>
+                      <Typography variant="caption" sx={{ color: '#1565c0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Existência Início
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#0d47a1', mt: 0.5 }}>
+                        {viewDialog.abastecimento.existencia_inicio} L
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={4}>
+                    <Box sx={{ 
+                      p: 2.5, 
+                      bgcolor: 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)', 
+                      borderRadius: 2, 
+                      textAlign: 'center', 
+                      border: 2, 
+                      borderColor: '#f57c00',
+                      boxShadow: '0 2px 8px rgba(245, 124, 0, 0.2)',
+                      transition: 'transform 0.2s ease-in-out',
+                      '&:hover': { transform: 'translateY(-2px)' }
+                    }}>
+                      <Typography variant="caption" sx={{ color: '#ef6c00', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Entrada Combustível
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#e65100', mt: 0.5 }}>
+                        {viewDialog.abastecimento.entrada_combustivel} L
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={4}>
+                    <Box sx={{ 
+                      p: 2.5, 
+                      bgcolor: 'linear-gradient(135deg, #e8f5e8 0%, #a5d6a7 100%)', 
+                      borderRadius: 2, 
+                      textAlign: 'center', 
+                      border: 2, 
+                      borderColor: '#388e3c',
+                      boxShadow: '0 2px 8px rgba(56, 142, 60, 0.2)',
+                      transition: 'transform 0.2s ease-in-out',
+                      '&:hover': { transform: 'translateY(-2px)' }
+                    }}>
+                      <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Existência Final
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1b5e20', mt: 0.5 }}>
+                        {viewDialog.abastecimento.existencia_fim} L
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ 
+                      p: 2.5, 
+                      bgcolor: 'action.hover',
+                      border: 1, 
+                      borderColor: 'divider', 
+                      borderRadius: 2,
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': { 
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 3px 6px rgba(0, 0, 0, 0.12)'
+                      }
+                    }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Quantidade Combustível
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', mt: 0.5 }}>
+                        {viewDialog.abastecimento.quantidade_combustivel || 0} L
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ 
+                      p: 2.5, 
+                      bgcolor: 'linear-gradient(135deg,rgba(101, 168, 223, 0.81) 0%,rgb(42, 104, 175) 100%)', 
+                      borderRadius: 2, 
+                      border: 2, 
+                      borderColor: 'rgba(42, 104, 175, 0.6)',
+                      boxShadow: '0 1px 2px rgba(42, 104, 175, 0.1)',
+                      transition: 'transform 0.2s ease-in-out',
+                      '&:hover': { transform: 'translateY(-2px)' }
+                    }}>
+                      <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.9 }}>
+                        Custo Total
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white', mt: 0.5, fontSize: '1.3rem' }}>
+                        {viewDialog.abastecimento.custo ? `${viewDialog.abastecimento.custo.toFixed(2)} Kz` : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              <Divider />
+
+              {/* Responsáveis */}
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 'bold' }}>
+                  Responsáveis
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Responsável Abastecimento</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {viewDialog.abastecimento.responsavel_abastecimento}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Criado Por</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {viewDialog.abastecimento.criado_por}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              <Divider />
+
+              {/* Equipamentos */}
+              {viewDialog.abastecimento.equipamentos_abastecimentos && viewDialog.abastecimento.equipamentos_abastecimentos.length > 0 && (
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 'bold' }}>
+                    Equipamentos ({viewDialog.abastecimento.equipamentos_abastecimentos.length})
+                  </Typography>
+                  <Stack spacing={2}>
+                    {viewDialog.abastecimento.equipamentos_abastecimentos.map((equipamento, index) => (
+                      <Paper key={equipamento.id || index} sx={{ p: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
+                        <Grid container spacing={2} alignItems="center">
+                          <Grid size={3}>
+                            <Typography variant="caption" color="text.secondary">Equipamento</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {equipamento.equipamento}
+                            </Typography>
+                          </Grid>
+                          <Grid size={2}>
+                            <Typography variant="caption" color="text.secondary">Ativo</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {equipamento.activo}
+                            </Typography>
+                          </Grid>
+                          <Grid size={2}>
+                            <Typography variant="caption" color="text.secondary">KM/H</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {equipamento.kmh || 'N/A'}
+                            </Typography>
+                          </Grid>
+                          <Grid size={2}>
+                            <Typography variant="caption" color="text.secondary">Quantidade</Typography>
+                            <Chip 
+                              label={`${equipamento.quantidade} L`}
+                              color="info"
+                              size="small"
+                            />
+                          </Grid>
+                          <Grid size={3}>
+                            <Typography variant="caption" color="text.secondary">Assinatura</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {equipamento.assinatura}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+              <Divider />
+
+              {/* Informações de Sistema */}
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 'bold' }}>
+                  Informações do Sistema
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Criado em</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {new Date(viewDialog.abastecimento.criado_em).toLocaleString('pt-BR')}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={6}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">Última Atualização</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {new Date(viewDialog.abastecimento.updated_at).toLocaleString('pt-BR')}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, bgcolor: 'background.default', borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={handleViewClose} variant="contained" color="primary">
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Modal de confirmação para exclusão */}
       <ConfirmDialog
         open={deleteDialog.open}
@@ -576,7 +871,6 @@ const AbastecimentoListaPage: React.FC = () => {
           { label: 'Data', value: new Date(deleteDialog.abastecimento.data_abastecimento).toLocaleDateString('pt-BR') },
           { label: 'Operador', value: deleteDialog.abastecimento.operador },
           { label: 'Posto', value: deleteDialog.abastecimento.posto_abastecimento },
-          { label: 'Matrícula', value: deleteDialog.abastecimento.matricula_ativo },
           { label: 'Responsável', value: deleteDialog.abastecimento.responsavel_abastecimento }
         ] : []}
         additionalInfo="Todos os dados relacionados a este abastecimento serão permanentemente removidos do sistema."

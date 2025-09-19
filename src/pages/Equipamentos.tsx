@@ -141,7 +141,10 @@ const EquipamentosPage: React.FC = () => {
       if (filtros.categoria_id) params.append('categoria_id', filtros.categoria_id);
       if (filtros.status_equipamento !== 'todos') params.append('status_equipamento', filtros.status_equipamento);
       if (filtros.centro_custo_id) params.append('centro_custo_id', filtros.centro_custo_id);
-      if (filtros.alerta_manutencao) params.append('alerta_manutencao', 'true');
+      
+      // Sempre enviar o parâmetro de alerta para garantir comportamento correto
+      // true = apenas com alerta, false = todos os equipamentos
+      params.append('alerta_manutencao', filtros.alerta_manutencao ? 'true' : 'all');
 
       const response = await fetch(`http://localhost:3001/api/equipamentos?${params}`, {
         headers: {
@@ -450,10 +453,13 @@ const EquipamentosPage: React.FC = () => {
       // Garantir que status_equipamento sempre tenha um valor válido
       let centrosCustoTransformado: { centro_custo_id: number; nome: string; codigo: string } | null = null;
 
+      console.log('🔍 Dados de centros_custo recebidos:', equipamentoCompleto.centros_custo);
+      
       if (equipamentoCompleto.centros_custo) {
         if (Array.isArray(equipamentoCompleto.centros_custo) && equipamentoCompleto.centros_custo.length > 0) {
           // Se for array, pegar o primeiro item
           const centro = equipamentoCompleto.centros_custo[0];
+          console.log('📋 Centro de custo (array):', centro);
           centrosCustoTransformado = {
             centro_custo_id: centro.centro_custo_id,
             nome: centro.nome,
@@ -462,13 +468,18 @@ const EquipamentosPage: React.FC = () => {
         } else if (!Array.isArray(equipamentoCompleto.centros_custo)) {
           // Se for objeto único
           const centro = equipamentoCompleto.centros_custo as any;
+          console.log('📋 Centro de custo (objeto):', centro);
           centrosCustoTransformado = {
             centro_custo_id: centro.centro_custo_id,
             nome: centro.nome,
             codigo: centro.codigo || 'N/A'
           };
         }
+      } else {
+        console.log('⚠️ Nenhum centro de custo encontrado para este equipamento');
       }
+      
+      console.log('✅ Centro de custo transformado:', centrosCustoTransformado);
 
       const equipamentoValidado = {
         ...equipamentoCompleto,
@@ -1211,7 +1222,7 @@ const EquipamentosPage: React.FC = () => {
       </Dialog>
 
       {/* Modal de Visualização de Equipamento */}
-      <Dialog open={viewModalOpen} onClose={fecharModalVisualizacao} maxWidth="lg" fullWidth>
+      <Dialog open={viewModalOpen} onClose={fecharModalVisualizacao} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Box display="flex" alignItems="center" gap={1}>
@@ -1468,9 +1479,6 @@ const EquipamentosPage: React.FC = () => {
                         </Typography>
                         <Typography variant="body2" color="success.main">
                           Código: {equipamentoDetalhes.centros_custo.codigo}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          ID: {equipamentoDetalhes.centros_custo.centro_custo_id}
                         </Typography>
                       </Box>
                     </Box>
