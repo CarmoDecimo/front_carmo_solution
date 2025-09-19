@@ -5,7 +5,7 @@ import {
   Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
   CircularProgress
 } from '@mui/material';
-import { Edit, Delete, Add, Download, Business } from '@mui/icons-material';
+import { Edit, Delete, Add, Download, AccountBalance } from '@mui/icons-material';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 // Interface para Centro de Custo conforme API
@@ -378,7 +378,7 @@ const CentroCustoPage: React.FC = () => {
       {/* Cabeçalho */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Business color="primary" sx={{ fontSize: 40 }} />
+          <AccountBalance color="primary" sx={{ fontSize: 40 }} />
           <Typography variant="h4" component="h1">
             Centros de Custo
           </Typography>
