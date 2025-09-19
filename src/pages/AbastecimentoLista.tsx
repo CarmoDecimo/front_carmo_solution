@@ -90,62 +90,68 @@ const AbastecimentoListaPage: React.FC = () => {
   const handleDownload = async (abastecimento: Abastecimento) => {
     console.log('📥 === FUNÇÃO handleDownload EXECUTADA ===');
     console.log('📊 Abastecimento recebido:', abastecimento);
+    console.log('🆔 ID do abastecimento:', abastecimento.id_abastecimento);
     
     try {
-      // Buscar dados completos do abastecimento
-      const abastecimentoCompleto = await abastecimentoService.getById(abastecimento.id_abastecimento.toString());
+      // Mostrar loading
+      setSnackbar({
+        open: true,
+        message: 'Preparando download do abastecimento...',
+        severity: 'info'
+      });
+
+      // Fazer requisição para download do abastecimento usando a nova rota
+      console.log('🔄 Iniciando requisição para download...');
+      const blob = await abastecimentoService.downloadAbastecimento(abastecimento.id_abastecimento.toString());
       
-      // Criar estrutura de dados para download
-      const dadosDownload = {
-        informacoes_basicas: {
-          id: abastecimentoCompleto.id_abastecimento,
-          data_abastecimento: abastecimentoCompleto.data_abastecimento,
-          posto_abastecimento: abastecimentoCompleto.posto_abastecimento,
-          matricula_ativo: abastecimentoCompleto.matricula_ativo,
-          operador: abastecimentoCompleto.operador,
-          responsavel_abastecimento: abastecimentoCompleto.responsavel_abastecimento,
-          existencia_inicio: abastecimentoCompleto.existencia_inicio,
-          entrada_combustivel: abastecimentoCompleto.entrada_combustivel,
-          existencia_fim: abastecimentoCompleto.existencia_fim,
-          quantidade_combustivel: abastecimentoCompleto.quantidade_combustivel,
-          custo: abastecimentoCompleto.custo,
-          local_abastecimento: abastecimentoCompleto.local_abastecimento,
-          veiculo_id: abastecimentoCompleto.veiculo_id,
-          quilometragem: abastecimentoCompleto.quilometragem,
-          horimetro: abastecimentoCompleto.horimetro,
-          criado_por: abastecimentoCompleto.criado_por,
-          criado_em: abastecimentoCompleto.criado_em
-        },
-        equipamentos_abastecimentos: abastecimentoCompleto.equipamentos_abastecimentos || [],
-        data_exportacao: new Date().toISOString(),
-        exportado_por: 'Sistema Carmo'
-      };
+      console.log('📦 Blob recebido:', blob);
+      console.log('📏 Tamanho do blob:', blob.size, 'bytes');
+      console.log('🏷️ Tipo do blob:', blob.type);
       
-      // Criar e baixar arquivo JSON
-      const dataStr = JSON.stringify(dadosDownload, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      // Verificar se o blob não está vazio
+      if (blob.size === 0) {
+        throw new Error('O arquivo baixado está vazio. Verifique se os dados do abastecimento existem na API.');
+      }
       
-      const url = URL.createObjectURL(dataBlob);
+      // Criar e baixar arquivo
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
+      
+      // Definir nome do arquivo baseado na data e ID do abastecimento
       const dataFormatada = new Date(abastecimento.data_abastecimento).toISOString().split('T')[0];
-      link.download = `abastecimento_${abastecimento.id_abastecimento}_${dataFormatada}.json`;
+      const nomeArquivo = `abastecimento_${abastecimento.id_abastecimento}_${dataFormatada}.xlsx`;
+      link.download = nomeArquivo;
+      
+      console.log('💾 Nome do arquivo:', nomeArquivo);
+      
+      // Executar download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
+      console.log('✅ Download executado com sucesso!');
+      
       setSnackbar({
         open: true,
-        message: 'Download realizado com sucesso!',
+        message: `Download do abastecimento ${abastecimento.id_abastecimento} realizado com sucesso!`,
         severity: 'success'
       });
       
     } catch (error) {
-      console.error('Erro ao fazer download do abastecimento:', error);
+      console.error('❌ Erro ao fazer download do abastecimento:', error);
+      
+      // Extrair mensagem de erro mais detalhada
+      let errorMessage = 'Erro ao fazer download do abastecimento';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('📝 Mensagem de erro detalhada:', errorMessage);
+      }
+      
       setSnackbar({
         open: true,
-        message: 'Erro ao fazer download do abastecimento',
+        message: errorMessage,
         severity: 'error'
       });
     }

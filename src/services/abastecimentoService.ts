@@ -154,6 +154,60 @@ export const centroCustoService = {
   getAbastecimentos: async (id: string) => {
     return api.get(`/api/centros-custo/${id}/abastecimentos`);
   },
+
+  // Exportar horímetros de um centro de custo
+  exportarHorimetros: async (id: string): Promise<Blob> => {
+    const baseURL = 'http://localhost:3001';
+    const url = `${baseURL}/api/abastecimentos/exportar-horimetros/${id}`;
+    
+    console.log('🔗 URL da requisição (Centro de Custo):', url);
+    console.log('🔑 Token de autenticação:', localStorage.getItem('authToken') ? 'Presente' : 'Ausente');
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Headers da resposta:', response.headers);
+
+      if (!response.ok) {
+        // Tentar obter mais detalhes do erro
+        let errorMessage = `Erro ao exportar horímetros: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorText = await response.text();
+          console.log('❌ Detalhes do erro do servidor:', errorText);
+          
+          // Tentar parsear como JSON para obter mais detalhes
+          try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.message) {
+              errorMessage += ` - ${errorJson.message}`;
+            }
+          } catch {
+            // Se não for JSON válido, usar o texto completo
+            if (errorText) {
+              errorMessage += ` - ${errorText}`;
+            }
+          }
+        } catch (textError) {
+          console.log('❌ Erro ao ler detalhes do erro:', textError);
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      return response.blob();
+    } catch (fetchError) {
+      console.error('❌ Erro na requisição fetch:', fetchError);
+      throw fetchError;
+    }
+  },
 };
 
 // Serviço de Abastecimento
@@ -201,5 +255,97 @@ export const abastecimentoService = {
     const endpoint = queryString ? `/api/abastecimentos/relatorio/consumo?${queryString}` : '/api/abastecimentos/relatorio/consumo';
     
     return api.get(endpoint);
+  },
+
+  // Download de um abastecimento
+  downloadAbastecimento: async (id: string): Promise<Blob> => {
+    const baseURL = 'http://localhost:3001';
+    const url = `${baseURL}/api/abastecimentos/download/${id}`;
+    
+    console.log('🔗 URL da requisição (Abastecimento):', url);
+    console.log('🆔 ID do abastecimento:', id);
+    console.log('🔑 Token de autenticação:', localStorage.getItem('authToken') ? 'Presente' : 'Ausente');
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Status text:', response.statusText);
+      
+      // Criar objeto com headers principais (compatível com versões antigas)
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      console.log('📡 Headers da resposta:', headersObj);
+
+      if (!response.ok) {
+        // Tentar obter mais detalhes do erro
+        let errorMessage = `Erro ao fazer download do abastecimento: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorText = await response.text();
+          console.log('❌ Detalhes do erro do servidor:', errorText);
+          
+          // Tentar parsear como JSON para obter mais detalhes
+          try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.message) {
+              errorMessage += ` - ${errorJson.message}`;
+            }
+          } catch {
+            // Se não for JSON válido, usar o texto completo
+            if (errorText) {
+              errorMessage += ` - ${errorText}`;
+            }
+          }
+        } catch (textError) {
+          console.log('❌ Erro ao ler detalhes do erro:', textError);
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Verificar o tipo de conteúdo da resposta
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+      console.log('📄 Content-Type:', contentType);
+      console.log('📏 Content-Length:', contentLength);
+
+      const blob = await response.blob();
+      console.log('📦 Blob criado:', {
+        size: blob.size,
+        type: blob.type
+      });
+
+      // Se o blob for muito pequeno, pode ser um erro
+      if (blob.size < 100) {
+        console.warn('⚠️ Blob muito pequeno, pode ser um erro');
+        // Tentar ler o conteúdo para verificar se é um erro em JSON
+        try {
+          const text = await blob.text();
+          console.log('📝 Conteúdo do blob pequeno:', text);
+          
+          // Se parecer um JSON de erro
+          if (text.charAt(0) === '{' || text.charAt(0) === '[') {
+            const errorData = JSON.parse(text);
+            throw new Error(`Erro da API: ${errorData.message || 'Resposta inesperada'}`);
+          }
+        } catch (parseError) {
+          console.log('📝 Não foi possível parsear o conteúdo como JSON');
+        }
+      }
+
+      return blob;
+    } catch (fetchError) {
+      console.error('❌ Erro na requisição fetch:', fetchError);
+      throw fetchError;
+    }
   },
 };

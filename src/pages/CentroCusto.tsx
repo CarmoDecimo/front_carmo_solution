@@ -200,84 +200,57 @@ const CentroCustoPage: React.FC = () => {
     try {
       const token = localStorage.getItem('authToken');
       
-      // Buscar dados completos do centro de custo
-      const response = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}`, {
+      // Fazer requisição para exportar horímetros usando a nova rota
+      const response = await fetch(`http://localhost:3001/api/abastecimentos/exportar-horimetros/${centro.centro_custo_id}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar dados do centro de custo');
-      }
-      
-      const result = await response.json();
-      const centroCustoCompleto = result.success ? result.data : centro;
-      
-      // Buscar estatísticas se disponível
-      let estatisticas = null;
-      try {
-        const estatisticasResponse = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}/estatisticas`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (estatisticasResponse.ok) {
-          const estatisticasResult = await estatisticasResponse.json();
-          estatisticas = estatisticasResult.success ? estatisticasResult.data : null;
-        }
-      } catch (error) {
-        console.warn('Estatísticas não disponíveis:', error);
-      }
-      
-      // Buscar equipamentos se disponível
-      let equipamentos = null;
-      try {
-        const equipamentosResponse = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}/equipamentos`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (equipamentosResponse.ok) {
-          const equipamentosResult = await equipamentosResponse.json();
-          equipamentos = equipamentosResult.success ? equipamentosResult.data : null;
-        }
-      } catch (error) {
-        console.warn('Equipamentos não disponíveis:', error);
-      }
-      
-      // Criar estrutura de dados para download
-      const dadosDownload = {
-        informacoes_basicas: {
-          id: centroCustoCompleto.centro_custo_id,
-          nome: centroCustoCompleto.nome,
-          codigo: centroCustoCompleto.codigo,
-          responsavel: centroCustoCompleto.responsavel,
-          localizacao: centroCustoCompleto.localizacao,
-          ativo: centroCustoCompleto.ativo,
-          observacao: centroCustoCompleto.observacao,
-          email_responsavel: centroCustoCompleto.email_responsavel,
-          orcamento_anual: centroCustoCompleto.orcamento_anual,
-          data_criacao: centroCustoCompleto.criado_em || centroCustoCompleto.created_at
+          'Content-Type': 'application/json',
         },
-        estatisticas: estatisticas,
-        equipamentos: equipamentos,
-        total_equipamentos: centro.total_equipamentos,
-        data_exportacao: new Date().toISOString(),
-        exportado_por: 'Sistema Carmo'
-      };
+      });
+
+      console.log('📡 Status da resposta:', response.status);
+      console.log('📡 Headers da resposta:', response.headers);
+
+      if (!response.ok) {
+        // Tentar obter mais detalhes do erro
+        let errorMessage = `Erro ao exportar horímetros: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorText = await response.text();
+          console.log('❌ Detalhes do erro do servidor:', errorText);
+          
+          // Tentar parsear como JSON para obter mais detalhes
+          try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.message) {
+              errorMessage += ` - ${errorJson.message}`;
+            }
+          } catch {
+            // Se não for JSON válido, usar o texto completo
+            if (errorText) {
+              errorMessage += ` - ${errorText}`;
+            }
+          }
+        } catch (textError) {
+          console.log('❌ Erro ao ler detalhes do erro:', textError);
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Obter o blob da resposta
+      const blob = await response.blob();
       
-      // Criar e baixar arquivo JSON
-      const dataStr = JSON.stringify(dadosDownload, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      
-      const url = URL.createObjectURL(dataBlob);
+      // Criar e baixar arquivo
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `centro_custo_${centro.codigo || centro.centro_custo_id}_${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Definir nome do arquivo baseado no código do centro
+      link.download = `horimetros_centro_custo_${centro.codigo || centro.centro_custo_id}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Executar download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -285,15 +258,22 @@ const CentroCustoPage: React.FC = () => {
       
       setSnackbar({
         open: true,
-        message: 'Download realizado com sucesso!',
+        message: 'Download de horímetros realizado com sucesso!',
         severity: 'success'
       });
       
     } catch (error) {
-      console.error('Erro ao fazer download dos dados:', error);
+      console.error('Erro ao fazer download dos horímetros:', error);
+      
+      // Extrair mensagem de erro mais detalhada
+      let errorMessage = 'Erro ao fazer download dos horímetros';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       setSnackbar({ 
         open: true, 
-        message: `Erro ao fazer download: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        message: errorMessage, 
         severity: 'error' 
       });
     } finally {

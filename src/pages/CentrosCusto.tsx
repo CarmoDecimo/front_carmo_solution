@@ -85,52 +85,18 @@ const CentrosCustoPage: React.FC = () => {
         throw new Error('ID do centro de custo não encontrado');
       }
       
-      // Buscar dados completos do centro de custo
-      const centroCustoCompleto = await centroCustoService.getById(centroId);
+      // Fazer requisição para exportar horímetros usando a nova rota
+      const blob = await centroCustoService.exportarHorimetros(centroId);
       
-      // Buscar estatísticas se disponível
-      let estatisticas = null;
-      try {
-        estatisticas = await centroCustoService.getEstatisticas(centroId);
-      } catch (error) {
-        console.warn('Estatísticas não disponíveis:', error);
-      }
-      
-      // Buscar equipamentos se disponível
-      let equipamentos = null;
-      try {
-        const equipamentosResponse = await centroCustoService.getEquipamentos(centroId);
-        equipamentos = equipamentosResponse.data;
-      } catch (error) {
-        console.warn('Equipamentos não disponíveis:', error);
-      }
-      
-      // Criar estrutura de dados para download
-      const dadosDownload = {
-        informacoes_basicas: {
-          id: centroCustoCompleto.id || centroCustoCompleto.centro_custo_id,
-          nome: centroCustoCompleto.nome,
-          codigo: centroCustoCompleto.codigo,
-          descricao: centroCustoCompleto.descricao,
-          responsavel: centroCustoCompleto.responsavel,
-          localizacao: centroCustoCompleto.localizacao,
-          ativo: centroCustoCompleto.ativo,
-          data_criacao: centroCustoCompleto.created_at
-        },
-        estatisticas: estatisticas,
-        equipamentos: equipamentos,
-        data_exportacao: new Date().toISOString(),
-        exportado_por: 'Sistema Carmo'
-      };
-      
-      // Criar e baixar arquivo JSON
-      const dataStr = JSON.stringify(dadosDownload, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      
-      const url = URL.createObjectURL(dataBlob);
+      // Criar e baixar arquivo
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `centro_custo_${centro.codigo}_${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Definir nome do arquivo baseado no código do centro
+      link.download = `horimetros_centro_custo_${centro.codigo}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Executar download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -138,15 +104,22 @@ const CentrosCustoPage: React.FC = () => {
       
       setSnackbar({
         open: true,
-        message: 'Download realizado com sucesso!',
+        message: 'Download de horímetros realizado com sucesso!',
         severity: 'success'
       });
       
     } catch (error) {
-      console.error('Erro ao fazer download dos dados:', error);
+      console.error('Erro ao fazer download dos horímetros:', error);
+      
+      // Extrair mensagem de erro mais detalhada
+      let errorMessage = 'Erro ao fazer download dos horímetros';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       setSnackbar({ 
         open: true, 
-        message: `Erro ao fazer download: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, 
+        message: errorMessage, 
         severity: 'error' 
       });
     } finally {

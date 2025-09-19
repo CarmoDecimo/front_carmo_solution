@@ -1,5 +1,5 @@
 // Configuração base da API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = 'http://localhost:3001';
 
 // Classe customizada para erros da API
 export class ApiException extends Error {
@@ -68,7 +68,7 @@ const makeRequest = async <T>(
 
     // Tenta fazer parse da resposta JSON
     const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
+    if (contentType && contentType.indexOf('application/json') !== -1) {
       return await response.json();
     }
     
