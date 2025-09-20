@@ -24,12 +24,43 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme-mode');
-    return saved ? JSON.parse(saved) : true; // Default to dark mode
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    
+    // Detecta automaticamente a preferência do sistema
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    
+    // Fallback para modo escuro se não conseguir detectar
+    return true;
   });
 
   useEffect(() => {
     localStorage.setItem('theme-mode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
+
+  // Listener para detectar mudanças no tema do sistema
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      const handleChange = (e: MediaQueryListEvent) => {
+        // Só atualiza se não há preferência salva pelo usuário
+        const saved = localStorage.getItem('theme-mode');
+        if (!saved) {
+          setIsDarkMode(e.matches);
+        }
+      };
+
+      // Adiciona o listener
+      mediaQuery.addEventListener('change', handleChange);
+      
+      // Remove o listener na limpeza
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, []);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
