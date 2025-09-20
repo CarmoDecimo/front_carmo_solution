@@ -4,7 +4,6 @@ import EquipamentosPage from './pages/Equipamentos';
 import GestaoCategorias from './pages/GestaoCategorias';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import CssBaseline from '@mui/material/CssBaseline';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -31,7 +30,6 @@ const ProtectedLayout = () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <CssBaseline />
       <Sidebar open={drawerOpen} onClose={toggleDrawer} />
       <Box
         component="main"

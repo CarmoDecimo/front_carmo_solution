@@ -49,6 +49,11 @@ export interface User {
   created_at: string;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 // Serviço de autenticação
 export const authService = {
   // Login do usuário
@@ -89,5 +94,10 @@ export const authService = {
     } catch {
       return { valid: false };
     }
+  },
+
+  // Alterar senha do usuário
+  changePassword: async (passwordData: ChangePasswordRequest): Promise<{ message: string }> => {
+    return api.post<{ message: string }>('/api/auth/change-password', passwordData);
   },
 };

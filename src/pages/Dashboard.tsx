@@ -988,7 +988,7 @@ function Dashboard() {
                 <Grow in timeout={1200}>
                   <ModernAlert severity="warning">
                     <AlertTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <WarningIcon /> Manutenções Atrasadas
+                      Manutenções Atrasadas
                     </AlertTitle>
                     {loading ? (
                       <Stack spacing={1}>
@@ -1006,7 +1006,7 @@ function Dashboard() {
                         </Paper>
                       ))
                     ) : (
-                      <Typography variant="body2">✅ Não há manutenções atrasadas.</Typography>
+                      <Typography variant="body2"> Não há manutenções atrasadas.</Typography>
                     )}
                   </ModernAlert>
                 </Grow>
@@ -1016,7 +1016,7 @@ function Dashboard() {
                 <Grow in timeout={1400}>
                   <ModernAlert severity="info">
                     <AlertTitle sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CalendarMonthIcon /> Próximas Manutenções
+                    Próximas Manutenções
                     </AlertTitle>
                     {loading ? (
                       <Stack spacing={1}>
@@ -1034,7 +1034,7 @@ function Dashboard() {
                         </Paper>
                       ))
                     ) : (
-                      <Typography variant="body2">📅 Não há manutenções agendadas.</Typography>
+                      <Typography variant="body2">Não há manutenções agendadas.</Typography>
                     )}
                   </ModernAlert>
                 </Grow>

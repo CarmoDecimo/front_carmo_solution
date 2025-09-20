@@ -4,7 +4,6 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import MenuIcon from '@mui/icons-material/Menu';
-import LogoutIcon from '@mui/icons-material/Logout';
 import BusinessIcon from '@mui/icons-material/Business';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -24,8 +23,21 @@ import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Alert from '@mui/material/Alert';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/auth/AuthContext';
+import { authService } from '../../services/authService';
+import { useTheme } from '../../contexts/ThemeProvider';
 
 interface HeaderProps {
   toggleDrawer: () => void;
@@ -42,16 +54,24 @@ interface NotificationData {
 }
 
 function Header({ toggleDrawer }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   
   // Estado das notificações
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [notificationAnchor, setNotificationAnchor] = useState<HTMLButtonElement | null>(null);
   const notificationOpen = Boolean(notificationAnchor);
 
-  const handleLogout = () => {
-    logout();
-  };
+  // Estado do modal do perfil
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
 
   const handleNotificationClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setNotificationAnchor(event.currentTarget);
@@ -255,6 +275,62 @@ function Header({ toggleDrawer }: HeaderProps) {
     }
   };
 
+  // Funções do modal do perfil
+  const handleProfileClick = () => {
+    setProfileModalOpen(true);
+  };
+
+  const handleProfileClose = () => {
+    setProfileModalOpen(false);
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setPasswordError('');
+    setPasswordSuccess('');
+  };
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('Todos os campos são obrigatórios');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('A nova senha e a confirmação não coincidem');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('A nova senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    try {
+      await authService.changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      
+      setPasswordSuccess('Senha alterada com sucesso!');
+      setTimeout(() => {
+        handleProfileClose();
+      }, 2000);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Erro ao alterar senha. Verifique sua senha atual.';
+      setPasswordError(errorMessage);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
     
@@ -336,6 +412,8 @@ function Header({ toggleDrawer }: HeaderProps) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {user && (
               <Chip
+                clickable
+                onClick={handleProfileClick}
                 avatar={
                   <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)' }}>
                     <AccountCircleIcon sx={{ color: 'white', fontSize: 18 }} />
@@ -359,12 +437,47 @@ function Header({ toggleDrawer }: HeaderProps) {
                   height: 'auto',
                   py: 0.5,
                   display: { xs: 'none', sm: 'flex' },
+                  cursor: 'pointer',
                   '& .MuiChip-label': {
                     px: 1
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
                   }
                 }}
               />
             )}
+            
+            {/* Botão de alternância de tema */}
+            <IconButton
+              onClick={toggleTheme}
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  transform: 'scale(1.05)',
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              {isDarkMode ? (
+                <LightModeIcon 
+                  sx={{ 
+                    color: 'white',
+                    fontSize: 20
+                  }} 
+                />
+              ) : (
+                <DarkModeIcon 
+                  sx={{ 
+                    color: 'white',
+                    fontSize: 20
+                  }} 
+                />
+              )}
+            </IconButton>
             
             {/* Botão de Notificações */}
             <IconButton
@@ -400,48 +513,6 @@ function Header({ toggleDrawer }: HeaderProps) {
               </Badge>
             </IconButton>
             
-            {/* Botão de Logout */}
-            <Button
-              color="inherit"
-              onClick={handleLogout}
-              startIcon={<LogoutIcon />}
-              sx={{ 
-                display: { xs: 'none', sm: 'flex' },
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '12px',
-                px: 2,
-                py: 1,
-                color: 'white',
-                fontWeight: 500,
-                textTransform: 'none',
-                backdropFilter: 'blur(10px)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                },
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              Sair
-            </Button>
-            
-            {/* Ícone de Logout para mobile */}
-            <IconButton
-              color="inherit"
-              onClick={handleLogout}
-              sx={{ 
-                display: { xs: 'flex', sm: 'none' },
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)'
-                }
-              }}
-            >
-              <LogoutIcon />
-            </IconButton>
           </Box>
         </Box>
       </Toolbar>
@@ -646,6 +717,148 @@ function Header({ toggleDrawer }: HeaderProps) {
           )}
         </Paper>
       </Popover>
+
+      {/* Modal do Perfil do Usuário */}
+      <Dialog
+        open={profileModalOpen}
+        onClose={handleProfileClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          pb: 1, 
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
+        }}>
+          <Avatar sx={{ bgcolor: 'primary.main' }}>
+            <PersonIcon />
+          </Avatar>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Perfil do Usuário
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Gerencie suas informações pessoais
+            </Typography>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={3}>
+            {/* Informações do Usuário */}
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon color="primary" />
+                Informações Pessoais
+              </Typography>
+              
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'background.default', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                  <PersonIcon color="primary" />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Nome</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                      {user?.nome || 'Nome não informado'}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'background.default', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                  <EmailIcon color="primary" />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Email</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                      {user?.email || 'Email não informado'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Stack>
+            </Box>
+
+            <Divider />
+
+            {/* Seção de Mudança de Senha */}
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LockIcon color="primary" />
+                Alterar Senha
+              </Typography>
+
+              {passwordError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {passwordError}
+                </Alert>
+              )}
+
+              {passwordSuccess && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {passwordSuccess}
+                </Alert>
+              )}
+
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Senha Atual"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                  variant="outlined"
+                  size="small"
+                />
+
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Nova Senha"
+                  value={passwordData.newPassword}
+                  onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  helperText="Mínimo de 6 caracteres"
+                />
+
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Confirmar Nova Senha"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                  variant="outlined"
+                  size="small"
+                />
+              </Stack>
+            </Box>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3, pt: 2, gap: 1 }}>
+          <Button 
+            onClick={handleProfileClose}
+            variant="outlined"
+            sx={{ minWidth: 100 }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handlePasswordSubmit}
+            variant="contained"
+            disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+            sx={{ minWidth: 120 }}
+          >
+            Alterar Senha
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppBar>
   );
 }

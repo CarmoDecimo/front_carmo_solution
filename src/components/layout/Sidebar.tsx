@@ -23,6 +23,8 @@ import CategoryIcon from '@mui/icons-material/Category';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useAuth } from '../../contexts/auth/AuthContext';
 
 interface SidebarProps {
   open: boolean;
@@ -42,6 +44,11 @@ const DRAWER_WIDTH = 240;
 function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  const { logout } = useAuth();
+  
+  const handleLogout = () => {
+    logout();
+  };
   
   // Função para expandir/retrair um item do menu
   const handleToggleExpand = (index: number, event: React.MouseEvent<HTMLDivElement>) => {
@@ -122,10 +129,11 @@ function Sidebar({ open, onClose }: SidebarProps) {
   ];
 
   const drawer = (
-    <div>
-      <Toolbar /> {/* Espaço para o cabeçalho */}
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
-      <List>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box sx={{ flexGrow: 1 }}>
+        <Toolbar /> {/* Espaço para o cabeçalho */}
+        <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+        <List>
         {menuItems.map((item, index) => {
           const isItemExpanded = expandedItems.includes(index);
           const isActive = location.pathname === item.path;
@@ -278,8 +286,46 @@ function Sidebar({ open, onClose }: SidebarProps) {
           </React.Fragment>
           );
         })}
-      </List>
-    </div>
+        </List>
+      </Box>
+      
+      {/* Footer com botão de logout */}
+      <Box sx={{ mt: 'auto', p: 2 }}>
+        <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
+        <ListItem disablePadding>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 2,
+              transition: 'all 0.2s',
+              '&:hover': {
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                '& .MuiListItemIcon-root': {
+                  color: 'error.main'
+                },
+                '& .MuiListItemText-root': {
+                  color: 'error.main'
+                }
+              }
+            }}
+          >
+            <ListItemIcon sx={{ 
+              color: 'text.secondary',
+              transition: 'color 0.2s'
+            }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText 
+              primary="Fazer Logout" 
+              sx={{ 
+                color: 'text.primary',
+                transition: 'color 0.2s'
+              }}
+            />
+          </ListItemButton>
+        </ListItem>
+      </Box>
+    </Box>
   );
 
   return (
