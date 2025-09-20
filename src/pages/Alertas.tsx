@@ -406,7 +406,6 @@ const AlertasPage: React.FC = () => {
             {alertasFiltrados.length === 0 && (
               <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
-                  <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
                     Nenhum alerta encontrado
                   </Typography>
