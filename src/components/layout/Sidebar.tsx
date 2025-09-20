@@ -10,6 +10,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Toolbar from '@mui/material/Toolbar';
 import Divider from '@mui/material/Divider';
 import Collapse from '@mui/material/Collapse';
+import Typography from '@mui/material/Typography';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -289,28 +290,34 @@ function Sidebar({ open, onClose }: SidebarProps) {
         </List>
       </Box>
       
-      {/* Footer com botão de logout */}
+      {/* Footer com informações do sistema e logout */}
       <Box sx={{ mt: 'auto', p: 2 }}>
-        <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
+        <Divider sx={{ mb: 2, borderColor: 'divider' }} />
+        
+        
+        {/* Botão de logout */}
         <ListItem disablePadding>
           <ListItemButton
             onClick={handleLogout}
             sx={{
               borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'error.main',
+              backgroundColor: 'transparent',
               transition: 'all 0.2s',
               '&:hover': {
-                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                backgroundColor: 'error.main',
                 '& .MuiListItemIcon-root': {
-                  color: 'error.main'
+                  color: 'error.contrastText'
                 },
                 '& .MuiListItemText-root': {
-                  color: 'error.main'
+                  color: 'error.contrastText'
                 }
               }
             }}
           >
             <ListItemIcon sx={{ 
-              color: 'text.secondary',
+              color: 'error.main',
               transition: 'color 0.2s'
             }}>
               <LogoutIcon />
@@ -318,8 +325,11 @@ function Sidebar({ open, onClose }: SidebarProps) {
             <ListItemText 
               primary="Fazer Logout" 
               sx={{ 
-                color: 'text.primary',
-                transition: 'color 0.2s'
+                color: 'error.main',
+                transition: 'color 0.2s',
+                '& .MuiTypography-root': {
+                  fontWeight: 500
+                }
               }}
             />
           </ListItemButton>
