@@ -266,7 +266,7 @@ function Abastecimento() {
       // Enviar para o backend
       const response = await abastecimentoService.create(dadosEnvio);
       
-      setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id}`);
+      setSuccess(`Abastecimento enviado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
       setOpenSnackbar(true);
       
       // Limpar formulário após sucesso

@@ -10,7 +10,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Toolbar from '@mui/material/Toolbar';
 import Divider from '@mui/material/Divider';
 import Collapse from '@mui/material/Collapse';
-import Typography from '@mui/material/Typography';
+// Typography removed - not used
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';

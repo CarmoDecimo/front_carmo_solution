@@ -14,8 +14,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Grid
+  Stack
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { Save, ArrowBack, Settings } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -167,15 +168,14 @@ const CentroAbastecimentoConfig: React.FC = () => {
         </Button>
       </Box>
 
-      <Grid container spacing={3}>
+      <Stack spacing={3}>
         {/* Informações Básicas */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Informações Básicas
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Informações Básicas
+          </Typography>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Box sx={{ flex: 1 }}>
                 <TextField
                   label="Nome do Centro *"
                   fullWidth
@@ -184,8 +184,8 @@ const CentroAbastecimentoConfig: React.FC = () => {
                   error={!config.nome.trim()}
                   helperText={!config.nome.trim() ? 'Nome é obrigatório' : ''}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
+            </Box>
+            <Box sx={{ flex: 1 }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -196,154 +196,145 @@ const CentroAbastecimentoConfig: React.FC = () => {
                   }
                   label="Centro ativo"
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Endereço"
-                  fullWidth
-                  value={config.endereco}
-                  onChange={e => handleInputChange('endereco', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
+            </Box>
+          </Stack>
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              label="Endereço"
+              fullWidth
+              value={config.endereco}
+              onChange={e => handleInputChange('endereco', e.target.value)}
+            />
+          </Box>
+        </Paper>
 
         {/* Combustível */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              ⛽ Gestão de Combustível
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="Capacidade Máxima (Litros)"
-                  fullWidth
-                  type="number"
-                  value={config.capacidadeMaxima}
-                  onChange={e => handleInputChange('capacidadeMaxima', Number(e.target.value))}
-                  inputProps={{ min: 0, step: 100 }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="Quantidade Atual (Litros)"
-                  fullWidth
-                  type="number"
-                  value={config.quantidadeCombustivel}
-                  onChange={e => handleInputChange('quantidadeCombustivel', Number(e.target.value))}
-                  inputProps={{ min: 0, step: 10 }}
-                  error={config.quantidadeCombustivel > config.capacidadeMaxima}
-                  helperText={
-                    config.quantidadeCombustivel > config.capacidadeMaxima 
-                      ? 'Não pode ser maior que a capacidade máxima'
-                      : `${percentualCombustivel.toFixed(1)}% da capacidade`
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Tipo de Combustível</InputLabel>
-                  <Select
-                    value={config.tipoCombustivel}
-                    label="Tipo de Combustível"
-                    onChange={e => handleInputChange('tipoCombustivel', e.target.value)}
-                  >
-                    <MenuItem value="diesel">Diesel</MenuItem>
-                    <MenuItem value="gasolina">Gasolina</MenuItem>
-                    <MenuItem value="etanol">Etanol</MenuItem>
-                    <MenuItem value="gnv">GNV</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            ⛽ Gestão de Combustível
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                label="Capacidade Máxima (Litros)"
+                fullWidth
+                type="number"
+                value={config.capacidadeMaxima}
+                onChange={e => handleInputChange('capacidadeMaxima', Number(e.target.value))}
+                inputProps={{ min: 0, step: 100 }}
+              />
             </Grid>
-          </Paper>
-        </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                label="Quantidade Atual (Litros)"
+                fullWidth
+                type="number"
+                value={config.quantidadeCombustivel}
+                onChange={e => handleInputChange('quantidadeCombustivel', Number(e.target.value))}
+                inputProps={{ min: 0, step: 10 }}
+                error={config.quantidadeCombustivel > config.capacidadeMaxima}
+                helperText={
+                  config.quantidadeCombustivel > config.capacidadeMaxima 
+                    ? 'Não pode ser maior que a capacidade máxima'
+                    : `${percentualCombustivel.toFixed(1)}% da capacidade`
+                }
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FormControl fullWidth>
+                <InputLabel>Tipo de Combustível</InputLabel>
+                <Select
+                  value={config.tipoCombustivel}
+                  label="Tipo de Combustível"
+                  onChange={e => handleInputChange('tipoCombustivel', e.target.value)}
+                >
+                  <MenuItem value="diesel">Diesel</MenuItem>
+                  <MenuItem value="gasolina">Gasolina</MenuItem>
+                  <MenuItem value="etanol">Etanol</MenuItem>
+                  <MenuItem value="gnv">GNV</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Paper>
 
-        {/* Informações de Contato */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Informações de Contato
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="Responsável"
-                  fullWidth
-                  value={config.responsavel}
-                  onChange={e => handleInputChange('responsavel', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="Telefone"
-                  fullWidth
-                  value={config.telefone}
-                  onChange={e => handleInputChange('telefone', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="E-mail"
-                  fullWidth
-                  type="email"
-                  value={config.email}
-                  onChange={e => handleInputChange('email', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Horário de Funcionamento"
-                  fullWidth
-                  value={config.horarioFuncionamento}
-                  onChange={e => handleInputChange('horarioFuncionamento', e.target.value)}
-                  placeholder="Ex: 06:00 - 18:00"
-                />
-              </Grid>
+        {/* Configurações de Operação */}
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Configurações de Operação
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Responsável"
+                fullWidth
+                value={config.responsavel}
+                onChange={e => handleInputChange('responsavel', e.target.value)}
+              />
             </Grid>
-          </Paper>
-        </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Telefone"
+                fullWidth
+                value={config.telefone}
+                onChange={e => handleInputChange('telefone', e.target.value)}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="E-mail"
+                fullWidth
+                type="email"
+                value={config.email}
+                onChange={e => handleInputChange('email', e.target.value)}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Horário de Funcionamento"
+                fullWidth
+                value={config.horarioFuncionamento}
+                onChange={e => handleInputChange('horarioFuncionamento', e.target.value)}
+                placeholder="Ex: 06:00 - 18:00"
+              />
+            </Grid>
+          </Grid>
+        </Paper>
 
         {/* Observações */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              Observações
-            </Typography>
-            <TextField
-              label="Observações"
-              fullWidth
-              multiline
-              minRows={3}
-              value={config.observacoes}
-              onChange={e => handleInputChange('observacoes', e.target.value)}
-              placeholder="Informações adicionais sobre o centro de abastecimento..."
-            />
-          </Paper>
-        </Grid>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Observações
+          </Typography>
+          <TextField
+            label="Observações"
+            fullWidth
+            multiline
+            minRows={3}
+            value={config.observacoes}
+            onChange={e => handleInputChange('observacoes', e.target.value)}
+            placeholder="Informações adicionais sobre o centro de abastecimento..."
+          />
+        </Paper>
 
         {/* Botões de Ação */}
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/abastecimento')}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Save />}
-              onClick={handleSave}
-              disabled={loading || !config.nome.trim()}
-            >
-              {loading ? 'Salvando...' : 'Salvar Configurações'}
-            </Button>
-          </Box>
-        </Grid>
-      </Grid>
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/abastecimento')}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Save />}
+            onClick={handleSave}
+            disabled={loading || !config.nome.trim()}
+          >
+            {loading ? 'Salvando...' : 'Salvar Configurações'}
+          </Button>
+        </Box>
+      </Stack>
 
       {/* Snackbar para feedback */}
       <Snackbar

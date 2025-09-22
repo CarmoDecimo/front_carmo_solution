@@ -73,6 +73,7 @@ export interface EquipamentoAbastecimento {
 }
 
 export interface Abastecimento {
+  id?: string; // Added for compatibility
   id_abastecimento: number;
   centro_custo_id: string;
   data_abastecimento: string;
@@ -82,6 +83,7 @@ export interface Abastecimento {
   matricula_ativo: string;
   operador: string;
   equipamentos_abastecimentos?: EquipamentoAbastecimento[];
+  equipamentos?: EquipamentoAbastecimento[]; // Added for compatibility
   existencia_fim: number;
   responsavel_abastecimento: string;
   veiculo_id?: string | null;

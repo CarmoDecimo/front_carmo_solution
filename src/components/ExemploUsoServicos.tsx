@@ -67,8 +67,8 @@ const ExemploUsoServicos = () => {
     setError(null);
     
     try {
-      const data = await abastecimentoService.getAll();
-      setAbastecimentos(data);
+      const response = await abastecimentoService.getAll();
+      setAbastecimentos(response.data);
     } catch (error) {
       if (error instanceof ApiException) {
         setError(`Erro ao carregar abastecimentos: ${error.message}`);
@@ -186,10 +186,10 @@ const ExemploUsoServicos = () => {
           
           <List>
             {abastecimentos.map((abastecimento) => (
-              <ListItem key={abastecimento.id} divider>
+              <ListItem key={abastecimento.id || abastecimento.id_abastecimento} divider>
                 <ListItemText
                   primary={`${new Date(abastecimento.data_abastecimento).toLocaleDateString()} - ${abastecimento.posto_abastecimento}`}
-                  secondary={`${abastecimento.equipamentos.reduce((total, eq) => total + eq.quantidade, 0)}L | ${abastecimento.matricula_ativo}`}
+                  secondary={`${(abastecimento.equipamentos || abastecimento.equipamentos_abastecimentos || []).reduce((total: number, eq: any) => total + eq.quantidade, 0)}L | ${abastecimento.matricula_ativo}`}
                 />
               </ListItem>
             ))}

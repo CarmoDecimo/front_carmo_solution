@@ -64,7 +64,7 @@ function GestaoUsuarios() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   
   // Modal states
   const [openDialog, setOpenDialog] = useState(false);
