@@ -99,14 +99,42 @@ const EquipamentosPage: React.FC = () => {
     loading: false
   });
   
-  // Estados de filtros
-  const [filtros, setFiltros] = useState({
-    nome: '',
-    categoria_id: '',
-    status_equipamento: 'todos',
-    centro_custo_id: '',
-    alerta_manutencao: false
+  // Estados de filtros com persistência no localStorage
+  const [filtros, setFiltros] = useState(() => {
+    try {
+      const savedFilters = localStorage.getItem('equipamentos-filtros');
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters);
+        return {
+          nome: parsed.nome || '',
+          categoria_id: parsed.categoria_id || '',
+          status_equipamento: parsed.status_equipamento || 'todos',
+          centro_custo_id: parsed.centro_custo_id || '',
+          alerta_manutencao: parsed.alerta_manutencao || false
+        };
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar filtros salvos:', error);
+    }
+    
+    // Valores padrão se não houver filtros salvos
+    return {
+      nome: '',
+      categoria_id: '',
+      status_equipamento: 'todos',
+      centro_custo_id: '',
+      alerta_manutencao: false
+    };
   });
+
+  // Salvar filtros no localStorage sempre que mudarem
+  useEffect(() => {
+    try {
+      localStorage.setItem('equipamentos-filtros', JSON.stringify(filtros));
+    } catch (error) {
+      console.warn('Erro ao salvar filtros:', error);
+    }
+  }, [filtros]);
 
   // Carregar dados ao montar componente
   useEffect(() => {
@@ -143,8 +171,14 @@ const EquipamentosPage: React.FC = () => {
       if (filtros.centro_custo_id) params.append('centro_custo_id', filtros.centro_custo_id);
       
       // Sempre enviar o parâmetro de alerta para garantir comportamento correto
-      // true = apenas com alerta, false = todos os equipamentos
-      params.append('alerta_manutencao', filtros.alerta_manutencao ? 'true' : 'all');
+      // true = apenas com alerta, all = todos os equipamentos
+      const alertaParam = filtros.alerta_manutencao ? 'true' : 'all';
+      params.append('alerta_manutencao', alertaParam);
+      
+      console.log('🔍 Filtros aplicados:', {
+        ...filtros,
+        alerta_manutencao_param: alertaParam
+      });
 
       const response = await fetch(`http://localhost:3001/api/equipamentos?${params}`, {
         headers: {
@@ -689,7 +723,7 @@ const EquipamentosPage: React.FC = () => {
           </FormControl>
         </Box>
         
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <FormControlLabel
             control={
               <Switch
@@ -705,6 +739,25 @@ const EquipamentosPage: React.FC = () => {
               } 
             }}
           />
+          
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              const filtrosLimpos = {
+                nome: '',
+                categoria_id: '',
+                status_equipamento: 'todos',
+                centro_custo_id: '',
+                alerta_manutencao: false
+              };
+              setFiltros(filtrosLimpos);
+              localStorage.removeItem('equipamentos-filtros');
+            }}
+            sx={{ minWidth: 'auto' }}
+          >
+            Limpar Filtros
+          </Button>
         </Box>
       </Paper>
 
