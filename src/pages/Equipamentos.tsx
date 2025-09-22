@@ -178,6 +178,31 @@ const EquipamentosPage: React.FC = () => {
     
     try {
       const token = localStorage.getItem('authToken');
+      
+      // NOVA ESTRATÉGIA: Sempre fazer uma requisição de "verificação de saúde" primeiro
+      // para saber quantos equipamentos realmente existem
+      let totalEquipamentosEsperados = 0;
+      try {
+        console.log('🔍 Fazendo verificação de saúde da API...');
+        const healthCheckResponse = await fetch('http://localhost:3001/api/equipamentos', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const healthResult = await healthCheckResponse.json();
+        if (healthResult.success) {
+          totalEquipamentosEsperados = healthResult.data?.length || 0;
+          console.log('✅ Verificação de saúde:', {
+            totalEquipamentos: totalEquipamentosEsperados,
+            comAlerta: healthResult.data?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0,
+            semAlerta: healthResult.data?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0
+          });
+        }
+      } catch (healthError) {
+        console.warn('⚠️ Verificação de saúde falhou, continuando normalmente');
+      }
+      
       const params = new URLSearchParams();
       
       // Aplicar filtros
@@ -193,10 +218,8 @@ const EquipamentosPage: React.FC = () => {
         params.append('alerta_manutencao', 'true');
         console.log('🔍 Filtro aplicado: APENAS equipamentos COM alerta de manutenção');
       } else {
-        // Estratégia dupla: não enviar parâmetro E enviar explicitamente 'all' como fallback
         console.log('🔍 Filtro aplicado: TODOS os equipamentos (sem filtro de alerta)');
-        // Comentado para testar sem o parâmetro primeiro
-        // params.append('alerta_manutencao', 'all');
+        console.log('🔍 Esperado receber:', totalEquipamentosEsperados, 'equipamentos');
       }
       
       console.log('🔍 URL completa da requisição:', `http://localhost:3001/api/equipamentos?${params.toString()}`);
@@ -219,40 +242,123 @@ const EquipamentosPage: React.FC = () => {
       });
       
       if (result.success) {
-        setEquipamentos(result.data);
+        // Verificação mais robusta: detectar problemas de filtragem
+        const totalRecebido = result.data?.length || 0;
+        const comAlerta = result.data?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0;
+        const semAlerta = result.data?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0;
         
-        // Verificação adicional: se esperávamos todos os equipamentos mas recebemos poucos
-        if (!filtros.alerta_manutencao && result.data?.length === 0) {
-          console.warn('⚠️ PROBLEMA DETECTADO: Switch desligado mas API retornou lista vazia');
-          console.warn('⚠️ Tentando requisição de fallback...');
+        // Detectar problemas potenciais usando dados da verificação de saúde
+        const problemaDetectado = (
+          // Switch desligado mas lista vazia
+          (!filtros.alerta_manutencao && totalRecebido === 0 && totalEquipamentosEsperados > 0) ||
+          // Switch desligado mas recebeu menos equipamentos que o esperado
+          (!filtros.alerta_manutencao && totalEquipamentosEsperados > 0 && totalRecebido < totalEquipamentosEsperados) ||
+          // Switch desligado mas só tem equipamentos sem alerta (suspeito se deveria ter com alerta)
+          (!filtros.alerta_manutencao && comAlerta === 0 && semAlerta > 0 && totalEquipamentosEsperados > semAlerta)
+        );
+        
+        if (problemaDetectado) {
+          console.warn('⚠️ PROBLEMA DE FILTRAGEM DETECTADO:', {
+            switchLigado: filtros.alerta_manutencao,
+            totalRecebido,
+            comAlerta,
+            semAlerta,
+            esperado: 'Todos os equipamentos quando switch desligado'
+          });
+          console.warn('⚠️ Tentando múltiplas estratégias de fallback...');
           
-          // Tentar novamente com parâmetro explícito
+          // Estratégia 1: Tentar com parâmetro 'all'
           try {
-            const fallbackParams = new URLSearchParams(params);
-            fallbackParams.append('alerta_manutencao', 'all');
+            const fallbackParams1 = new URLSearchParams();
+            // Copiar outros filtros mas não o de alerta
+            if (filtros.nome) fallbackParams1.append('nome', filtros.nome);
+            if (filtros.categoria_id) fallbackParams1.append('categoria_id', filtros.categoria_id);
+            if (filtros.status_equipamento !== 'todos') fallbackParams1.append('status_equipamento', filtros.status_equipamento);
+            if (filtros.centro_custo_id) fallbackParams1.append('centro_custo_id', filtros.centro_custo_id);
+            fallbackParams1.append('alerta_manutencao', 'all');
             
-            const fallbackResponse = await fetch(`http://localhost:3001/api/equipamentos?${fallbackParams}`, {
+            const fallbackResponse1 = await fetch(`http://localhost:3001/api/equipamentos?${fallbackParams1}`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
               }
             });
             
-            const fallbackResult = await fallbackResponse.json();
-            if (fallbackResult.success && fallbackResult.data?.length > 0) {
-              console.log('✅ Fallback funcionou! Usando resultado do fallback');
-              setEquipamentos(fallbackResult.data);
+            const fallbackResult1 = await fallbackResponse1.json();
+            if (fallbackResult1.success && fallbackResult1.data?.length > totalRecebido) {
+              console.log('✅ Fallback 1 (all) funcionou! Dados mais completos recebidos');
+              setEquipamentos(fallbackResult1.data);
               setFallbackUsado(true);
               setSnackbar({ 
                 open: true, 
-                message: 'Detectado problema de compatibilidade. Usando modo de compatibilidade.', 
+                message: 'Detectado problema de filtragem. Usando modo de compatibilidade.', 
                 severity: 'warning'
               });
+              return; // Sair da função, sucesso
             }
+            
+            // Estratégia 2: Tentar sem nenhum parâmetro de alerta
+            const fallbackParams2 = new URLSearchParams();
+            if (filtros.nome) fallbackParams2.append('nome', filtros.nome);
+            if (filtros.categoria_id) fallbackParams2.append('categoria_id', filtros.categoria_id);
+            if (filtros.status_equipamento !== 'todos') fallbackParams2.append('status_equipamento', filtros.status_equipamento);
+            if (filtros.centro_custo_id) fallbackParams2.append('centro_custo_id', filtros.centro_custo_id);
+            // NÃO adicionar alerta_manutencao
+            
+            const fallbackResponse2 = await fetch(`http://localhost:3001/api/equipamentos?${fallbackParams2}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            const fallbackResult2 = await fallbackResponse2.json();
+            if (fallbackResult2.success && fallbackResult2.data?.length > totalRecebido) {
+              console.log('✅ Fallback 2 (sem parâmetro) funcionou! Dados mais completos recebidos');
+              setEquipamentos(fallbackResult2.data);
+              setFallbackUsado(true);
+              setSnackbar({ 
+                open: true, 
+                message: 'Detectado problema de filtragem. Usando modo de compatibilidade.', 
+                severity: 'warning'
+              });
+              return; // Sair da função, sucesso
+            }
+            
+            // Estratégia 3: Usar dados da verificação de saúde se disponível
+            if (totalEquipamentosEsperados > 0) {
+              console.log('⚠️ Usando dados da verificação de saúde como último recurso');
+              try {
+                const healthResponse = await fetch('http://localhost:3001/api/equipamentos', {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                const healthResult = await healthResponse.json();
+                if (healthResult.success && healthResult.data?.length > 0) {
+                  console.log('✅ Usando dados da verificação de saúde');
+                  setEquipamentos(healthResult.data);
+                  setFallbackUsado(true);
+                  setSnackbar({ 
+                    open: true, 
+                    message: 'Problema crítico de filtragem detectado. Usando dados diretos da API.', 
+                    severity: 'warning'
+                  });
+                  return; // Sair da função, sucesso
+                }
+              } catch (healthFallbackError) {
+                console.error('❌ Até a verificação de saúde falhou:', healthFallbackError);
+              }
+            }
+            
           } catch (fallbackError) {
-            console.error('❌ Fallback também falhou:', fallbackError);
+            console.error('❌ Todas as estratégias de fallback falharam:', fallbackError);
           }
         }
+        
+        // Se chegou até aqui, usar dados originais
+        setEquipamentos(result.data);
         
         // Log adicional para debug
         if (result.data?.length === 0) {
