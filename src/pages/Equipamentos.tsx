@@ -90,7 +90,8 @@ const EquipamentosPage: React.FC = () => {
   const [observacoesAssociacao, setObservacoesAssociacao] = useState('');
 
   // Estados de feedback
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' });
+  const [fallbackUsado, setFallbackUsado] = useState(false);
   
   // Estados para modal de confirmação de exclusão
   const [deleteDialog, setDeleteDialog] = useState({
@@ -158,8 +159,23 @@ const EquipamentosPage: React.FC = () => {
     await carregarEquipamentos();
   };
 
+  // Função para garantir comportamento consistente independente do ambiente
+  const verificarComportamentoFiltro = () => {
+    const switchLigado = filtros.alerta_manutencao;
+    console.log('🔧 Verificação de comportamento:', {
+      switchLigado,
+      comportamentoEsperado: switchLigado ? 'Apenas com alerta' : 'Todos os equipamentos',
+      localStorage: localStorage.getItem('equipamentos-filtros'),
+      userAgent: navigator.userAgent.substring(0, 50) + '...'
+    });
+  };
+
   const carregarEquipamentos = async () => {
     setLoading(true);
+    
+    // Verificar comportamento antes da requisição
+    verificarComportamentoFiltro();
+    
     try {
       const token = localStorage.getItem('authToken');
       const params = new URLSearchParams();
@@ -170,15 +186,21 @@ const EquipamentosPage: React.FC = () => {
       if (filtros.status_equipamento !== 'todos') params.append('status_equipamento', filtros.status_equipamento);
       if (filtros.centro_custo_id) params.append('centro_custo_id', filtros.centro_custo_id);
       
-      // Sempre enviar o parâmetro de alerta para garantir comportamento correto
-      // true = apenas com alerta, all = todos os equipamentos
-      const alertaParam = filtros.alerta_manutencao ? 'true' : 'all';
-      params.append('alerta_manutencao', alertaParam);
+      // Lógica mais robusta para o parâmetro de alerta
+      // Se o switch está LIGADO (true): enviar 'true' para mostrar apenas com alerta
+      // Se o switch está DESLIGADO (false): NÃO enviar o parâmetro para mostrar todos
+      if (filtros.alerta_manutencao) {
+        params.append('alerta_manutencao', 'true');
+        console.log('🔍 Filtro aplicado: APENAS equipamentos COM alerta de manutenção');
+      } else {
+        // Estratégia dupla: não enviar parâmetro E enviar explicitamente 'all' como fallback
+        console.log('🔍 Filtro aplicado: TODOS os equipamentos (sem filtro de alerta)');
+        // Comentado para testar sem o parâmetro primeiro
+        // params.append('alerta_manutencao', 'all');
+      }
       
-      console.log('🔍 Filtros aplicados:', {
-        ...filtros,
-        alerta_manutencao_param: alertaParam
-      });
+      console.log('🔍 URL completa da requisição:', `http://localhost:3001/api/equipamentos?${params.toString()}`);
+      console.log('🔍 Estado dos filtros:', filtros);
 
       const response = await fetch(`http://localhost:3001/api/equipamentos?${params}`, {
         headers: {
@@ -188,9 +210,56 @@ const EquipamentosPage: React.FC = () => {
       });
 
       const result = await response.json();
+      
+      console.log('📊 Resposta da API:', {
+        success: result.success,
+        totalEquipamentos: result.data?.length || 0,
+        equipamentosComAlerta: result.data?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0,
+        equipamentosSemAlerta: result.data?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0
+      });
+      
       if (result.success) {
         setEquipamentos(result.data);
+        
+        // Verificação adicional: se esperávamos todos os equipamentos mas recebemos poucos
+        if (!filtros.alerta_manutencao && result.data?.length === 0) {
+          console.warn('⚠️ PROBLEMA DETECTADO: Switch desligado mas API retornou lista vazia');
+          console.warn('⚠️ Tentando requisição de fallback...');
+          
+          // Tentar novamente com parâmetro explícito
+          try {
+            const fallbackParams = new URLSearchParams(params);
+            fallbackParams.append('alerta_manutencao', 'all');
+            
+            const fallbackResponse = await fetch(`http://localhost:3001/api/equipamentos?${fallbackParams}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            const fallbackResult = await fallbackResponse.json();
+            if (fallbackResult.success && fallbackResult.data?.length > 0) {
+              console.log('✅ Fallback funcionou! Usando resultado do fallback');
+              setEquipamentos(fallbackResult.data);
+              setFallbackUsado(true);
+              setSnackbar({ 
+                open: true, 
+                message: 'Detectado problema de compatibilidade. Usando modo de compatibilidade.', 
+                severity: 'warning'
+              });
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback também falhou:', fallbackError);
+          }
+        }
+        
+        // Log adicional para debug
+        if (result.data?.length === 0) {
+          console.warn('⚠️ API retornou lista vazia de equipamentos');
+        }
       } else {
+        console.error('❌ Erro na resposta da API:', result);
         setSnackbar({ open: true, message: 'Erro ao carregar equipamentos', severity: 'error' });
       }
     } catch (error) {
@@ -724,21 +793,33 @@ const EquipamentosPage: React.FC = () => {
         </Box>
         
         <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={filtros.alerta_manutencao}
-                onChange={e => setFiltros(f => ({ ...f, alerta_manutencao: e.target.checked }))}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={filtros.alerta_manutencao}
+                  onChange={e => setFiltros(f => ({ ...f, alerta_manutencao: e.target.checked }))}
+                  color="warning"
+                />
+              }
+              label="Apenas com alerta de manutenção"
+              sx={{ 
+                '& .MuiFormControlLabel-label': { 
+                  fontSize: { xs: '0.875rem', md: '1rem' } 
+                } 
+              }}
+            />
+            
+            {fallbackUsado && (
+              <Chip
+                label="Modo Compatibilidade"
                 color="warning"
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.75rem' }}
               />
-            }
-            label="Apenas com alerta de manutenção"
-            sx={{ 
-              '& .MuiFormControlLabel-label': { 
-                fontSize: { xs: '0.875rem', md: '1rem' } 
-              } 
-            }}
-          />
+            )}
+          </Box>
           
           <Button
             variant="outlined"
@@ -752,6 +833,7 @@ const EquipamentosPage: React.FC = () => {
                 alerta_manutencao: false
               };
               setFiltros(filtrosLimpos);
+              setFallbackUsado(false);
               localStorage.removeItem('equipamentos-filtros');
             }}
             sx={{ minWidth: 'auto' }}
