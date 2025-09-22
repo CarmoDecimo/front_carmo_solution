@@ -643,11 +643,13 @@ function CalendarioPage() {
     const hasAtrasada = manutencoes.some(m => m.status === 'atrasada');
     const hasPendente = manutencoes.some(m => m.status === 'pendente');
     const hasRealizada = manutencoes.some(m => m.status === 'realizada');
+    const hasCancelada = manutencoes.some(m => m.status === 'cancelada');
     
-    if (hasAtrasada) return 'rgba(248, 113, 113, 0.2)';      // Fundo vermelho claro
-    if (hasPendente) return 'rgba(96, 165, 250, 0.2)';       // Fundo azul claro
-    if (hasRealizada) return 'rgba(74, 222, 128, 0.2)';      // Fundo verde claro
-    return 'rgba(148, 163, 184, 0.1)';                       // Fundo cinza claro
+    if (hasAtrasada) return 'rgba(248, 113, 113, 0.25)';      // 🔴 Fundo vermelho - Atrasada
+    if (hasPendente) return 'rgba(96, 165, 250, 0.25)';       // 🔵 Fundo azul - Pendente  
+    if (hasRealizada) return 'rgba(74, 222, 128, 0.25)';      // 🟢 Fundo verde - Realizada
+    if (hasCancelada) return 'rgba(148, 163, 184, 0.2)';      // ⚫ Fundo cinza - Cancelada
+    return 'transparent';                                      // Sem cor para casos não mapeados
   };
 
   // Calcular dados com proteção
@@ -791,31 +793,6 @@ function CalendarioPage() {
           </Box>
         </Card>
 
-        {/* Legenda Compacta */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, mb: 2, flexWrap: 'wrap' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-            💡 Clique nos dias para ver detalhes
-          </Typography>
-          <Divider orientation="vertical" flexItem />
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#f87171', borderRadius: '50%' }} />
-              <Typography variant="caption">Atrasada</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#60a5fa', borderRadius: '50%' }} />
-              <Typography variant="caption">Pendente</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#4ade80', borderRadius: '50%' }} />
-              <Typography variant="caption">Realizada</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#94a3b8', borderRadius: '50%' }} />
-              <Typography variant="caption">Cancelada</Typography>
-            </Box>
-          </Box>
-        </Box>
 
         {/* Calendário */}
         <Card sx={{ overflow: 'hidden' }}>
@@ -849,9 +826,11 @@ function CalendarioPage() {
                     backgroundColor: dayBackgroundColor,
                     border: manutencoesDoDia.length > 0 ? '2px solid' : '1px solid',
                     borderColor: manutencoesDoDia.length > 0 ? 
-                      (manutencoesDoDia.some(m => m.status === 'atrasada') ? '#f87171' :
-                       manutencoesDoDia.some(m => m.status === 'pendente') ? '#60a5fa' :
-                       manutencoesDoDia.some(m => m.status === 'realizada') ? '#4ade80' : '#94a3b8')
+                      (manutencoesDoDia.some(m => m.status === 'atrasada') ? '#f87171' :    // 🔴 Borda vermelha - Atrasada
+                       manutencoesDoDia.some(m => m.status === 'pendente') ? '#60a5fa' :     // 🔵 Borda azul - Pendente
+                       manutencoesDoDia.some(m => m.status === 'realizada') ? '#4ade80' :    // 🟢 Borda verde - Realizada
+                       manutencoesDoDia.some(m => m.status === 'cancelada') ? '#94a3b8' :    // ⚫ Borda cinza - Cancelada
+                       '#94a3b8')  // Fallback cinza
                       : 'divider',
                     '&:hover': {
                       backgroundColor: manutencoesDoDia.length > 0 ? 
@@ -914,6 +893,14 @@ function CalendarioPage() {
                           backgroundColor: '#4ade80', 
                           borderRadius: '50%',
                           boxShadow: '0 0 4px rgba(74, 222, 128, 0.6)'
+                        }} />
+                      )}
+                      {manutencoesDoDia.some(m => m.status === 'cancelada') && (
+                        <Box sx={{ 
+                          width: 6, height: 6, 
+                          backgroundColor: '#94a3b8', 
+                          borderRadius: '50%',
+                          boxShadow: '0 0 4px rgba(148, 163, 184, 0.6)'
                         }} />
                       )}
                     </Box>
