@@ -198,7 +198,7 @@ const AbastecimentoListaPage: React.FC = () => {
           to="/abastecimento/adicionar"
           disabled={loading}
         >
-          Adicionar Abastecimento
+          ABRIR NOVO TURNO
         </Button>
       </Box>
 
