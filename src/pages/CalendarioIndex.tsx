@@ -757,12 +757,56 @@ function CalendarioPage() {
           </IconButton>
         </Box>
 
+        {/* Ações Rápidas */}
+        <Box>
+          <Typography variant="h6" component="h3" gutterBottom>
+            Ações Rápidas
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<BuildIcon />}
+              onClick={() => setDialogGerarManutencao(true)}
+              disabled={loadingAcao}
+            >
+              Gerar Manutenção
+            </Button>
+            
+            <Button
+              variant="outlined"
+              startIcon={<CheckCircleIcon />}
+              onClick={handleVerificarLote}
+              disabled={loadingAcao}
+            >
+              Verificar Lote
+            </Button>
+            
+            <Button
+              variant="outlined"
+              startIcon={<UpdateIcon />}
+              onClick={handleAtualizarAtrasadas}
+              disabled={loadingAcao}
+            >
+              Atualizar Atrasadas
+            </Button>
+            
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExportarRelatorio}
+              disabled={loadingAcao}
+            >
+              Exportar Relatório
+            </Button>
+          </Box>
+        </Box>
+
 
         {/* Resumo Mensal Compacto */}
         <Card sx={{ p: 2, mb: 3, background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.1) 0%, rgba(74, 222, 128, 0.1) 100%)' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              📊 Resumo do Mês
+              Resumo do Mês
             </Typography>
             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -967,49 +1011,7 @@ function CalendarioPage() {
           </CalendarGrid>
         </Card>
 
-        {/* Ações Rápidas */}
-        <Box>
-          <Typography variant="h6" component="h3" gutterBottom>
-            Ações Rápidas
-          </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<BuildIcon />}
-              onClick={() => setDialogGerarManutencao(true)}
-              disabled={loadingAcao}
-            >
-              Gerar Manutenção
-            </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<CheckCircleIcon />}
-              onClick={handleVerificarLote}
-              disabled={loadingAcao}
-            >
-              Verificar Lote
-            </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<UpdateIcon />}
-              onClick={handleAtualizarAtrasadas}
-              disabled={loadingAcao}
-            >
-              Atualizar Atrasadas
-            </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExportarRelatorio}
-              disabled={loadingAcao}
-            >
-              Exportar Relatório
-            </Button>
-          </Box>
-        </Box>
+        
       </Stack>
 
       {/* Dialog para Gerar Manutenção */}

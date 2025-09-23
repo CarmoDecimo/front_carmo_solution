@@ -76,17 +76,11 @@ const makeRequest = async <T>(
         // Remove o token inválido
         localStorage.removeItem('authToken');
         
-        // Se há um handler registrado (pelo AuthContext), usa ele
-        if (handleAuthError) {
-          handleAuthError();
-        } else {
-          // Fallback: redireciona diretamente se não há handler registrado
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
+        // Redireciona para o login apenas se não estivermos já na página de login
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+          return Promise.reject(new ApiException(errorMessage, response.status, errorData));
         }
-        
-        throw new ApiException(errorMessage, response.status, errorData);
       }
       
       throw new ApiException(errorMessage, response.status, errorData);
