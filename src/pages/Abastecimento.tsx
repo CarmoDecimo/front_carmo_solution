@@ -457,9 +457,28 @@ function Abastecimento() {
               </Box>
               
               <Box sx={{ flex: { xs: '1 1 48%', md: '1 1 22%' }, minWidth: 150 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.300', borderRadius: 1 }}>
-                  <Typography variant="body2" color="text.primary">Equipamentos</Typography>
-                  <Typography variant="h6" color="text.primary">{equipamentosLista.length}</Typography>
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  p: 2, 
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1565c0' : 'grey.300',
+                  borderRadius: 1 
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : theme.palette.text.primary 
+                    }}
+                  >
+                    Equipamentos
+                  </Typography>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      color: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : theme.palette.text.primary 
+                    }}
+                  >
+                    {equipamentosLista.length}
+                  </Typography>
                 </Box>
               </Box>
             </Box>
@@ -575,7 +594,13 @@ function Abastecimento() {
               <TableContainer component={Paper} variant="outlined">
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ bgcolor: 'grey.50' }}>
+                    <TableRow sx={{ 
+                      bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1565c0' : 'grey.300',
+                      '& .MuiTableCell-root': {
+                        color: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : theme.palette.text.primary,
+                        borderBottom: 'none'
+                      }
+                    }}>
                       <TableCell sx={{ fontWeight: 'bold' }}>Equipamento</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Código</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Quantidade (L)</TableCell>
