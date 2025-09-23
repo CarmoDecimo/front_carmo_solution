@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Button, TextField, Stack, Alert, Snackbar,
   CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -13,6 +14,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import HistoryIcon from '@mui/icons-material/History';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { equipamentosService } from '../services';
+import { abastecimentoService } from '../services/abastecimentoService';
 import turnoAbastecimentoService, { 
   type TurnoAbastecimento, 
   type IniciarTurnoRequest, 
@@ -35,6 +37,10 @@ interface EquipamentoLista {
 }
 
 function Abastecimento() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(id);
+  
   // Estados principais
   const [estadoInterface, setEstadoInterface] = useState<EstadoInterface>('verificando');
   const [turnoAtivo, setTurnoAtivo] = useState<TurnoAbastecimento | null>(null);
@@ -44,11 +50,15 @@ function Abastecimento() {
   const [historicoTurnoAtivo, setHistoricoTurnoAtivo] = useState<any[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
   
+  // Estados para modo de edição
+  const [abastecimentoEditando, setAbastecimentoEditando] = useState<any>(null);
+  
   // Estados para formulários
   const [dadosIniciarTurno, setDadosIniciarTurno] = useState<IniciarTurnoRequest>({
     existencia_inicio: 0,
     responsavel_abastecimento: '',
     matricula: '',
+    matricula_ativo: '',
     posto_abastecimento: '',
     operador: '',
     entrada_combustivel: 0
@@ -107,13 +117,15 @@ function Abastecimento() {
   const inicializarPagina = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Inicializando página do Centro de Abastecimento...');
+      // Se estiver em modo de edição, carregar dados do abastecimento
+      if (isEditMode && id) {
+        console.log('📝 Modo de edição detectado, carregando abastecimento ID:', id);
+        await carregarAbastecimentoParaEdicao(Number(id));
+        return;
+      }
       
-      // Verificar se há turno ativo no localStorage
+      // Verificar se há turno fake/problemático no localStorage e remover
       const turnoId = localStorage.getItem('turno_ativo_id');
-      console.log('🔍 Verificando turno no localStorage:', turnoId);
-      
-      // Limpar possíveis turnos fake/problemáticos
       if (turnoId && (turnoId === '34' || turnoId === 'verificacao' || turnoId === 'verificacao_automatica')) {
         console.log('🗑️ Removendo turno fake/problemático do localStorage:', turnoId);
         forcarLimpezaCompleta();
@@ -123,10 +135,9 @@ function Abastecimento() {
       // Carregar equipamentos primeiro
       await carregarEquipamentos();
       
+      // Verificar turno ativo
       if (turnoId) {
-        console.log('🎯 Turno encontrado no localStorage, verificando se ainda existe...');
-        // Há turno no localStorage, verificar se ainda é válido (forçar verificação)
-        await verificarTurnoAtivo(true);
+        await verificarTurnoAtivo();
       } else {
         console.log('📭 Nenhum turno no localStorage, indo para página principal');
         // Não há turno, ir direto para página principal
@@ -151,6 +162,59 @@ function Abastecimento() {
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
       setEquipamentos([]);
+    }
+  };
+
+  // Carregar dados do abastecimento para edição
+  const carregarAbastecimentoParaEdicao = async (abastecimentoId: number) => {
+    try {
+      console.log('🔍 Carregando dados do abastecimento para edição:', abastecimentoId);
+      
+      // Carregar equipamentos primeiro
+      await carregarEquipamentos();
+      
+      // Carregar dados do abastecimento
+      const abastecimento = await abastecimentoService.buscarPorId(abastecimentoId);
+      console.log('📋 Dados do abastecimento carregados:', abastecimento);
+      
+      setAbastecimentoEditando(abastecimento);
+      
+      // Preencher formulário com dados do abastecimento
+      setDadosIniciarTurno({
+        existencia_inicio: abastecimento.existencia_inicio || 0,
+        responsavel_abastecimento: abastecimento.responsavel_abastecimento || '',
+        matricula: abastecimento.matricula_ativo || abastecimento.matricula || '',
+        matricula_ativo: abastecimento.matricula_ativo || '',
+        posto_abastecimento: abastecimento.posto_abastecimento || '',
+        operador: abastecimento.operador || '',
+        entrada_combustivel: abastecimento.entrada_combustivel || 0
+      });
+      
+      // Carregar equipamentos do abastecimento se existirem
+      if (abastecimento.equipamentos && abastecimento.equipamentos.length > 0) {
+        const equipamentosFormatados = abastecimento.equipamentos.map((eq: any, index: number) => ({
+          equipamento_id: eq.equipamento_id || index + 1,
+          nome: eq.nome || eq.equipamento || `Equipamento ${index + 1}`,
+          codigo_ativo: eq.codigo_ativo || eq.activo || '',
+          quantidade: eq.quantidade || 0,
+          horimetro: eq.horimetro || eq.kmh,
+          responsavel: eq.responsavel || eq.assinatura || ''
+        }));
+        setEquipamentosLista(equipamentosFormatados);
+      }
+      
+      // Definir estado como edição (usar sem_turno para mostrar formulário)
+      setEstadoInterface('sem_turno');
+      
+    } catch (error) {
+      console.error('❌ Erro ao carregar abastecimento para edição:', error);
+      setError('Erro ao carregar dados do abastecimento para edição');
+      setOpenSnackbar(true);
+      
+      // Redirecionar de volta para lista em caso de erro
+      setTimeout(() => {
+        navigate('/abastecimento');
+      }, 2000);
     }
   };
 
@@ -246,7 +310,7 @@ function Abastecimento() {
     }
   };
 
-  // Iniciar turno
+  // Iniciar turno ou salvar alterações
   const handleIniciarTurno = async () => {
     if (!dadosIniciarTurno.existencia_inicio || dadosIniciarTurno.existencia_inicio <= 0) {
       setError('Existência inicial deve ser maior que zero');
@@ -262,31 +326,65 @@ function Abastecimento() {
 
     setLoading(true);
     try {
-      console.log('🚀 Tentando iniciar turno com dados:', dadosIniciarTurno);
-      const response = await turnoAbastecimentoService.iniciarTurno(dadosIniciarTurno);
-      console.log('✅ Resposta do serviço:', response);
-      
-      setTurnoAtivo(response.turno);
-      setEquipamentosLista([]);
-      setEstadoInterface('turno_ativo');
-      
-      // Garantir que o ID do turno seja salvo no localStorage
-      if (response.turno?.id_abastecimento) {
-        localStorage.setItem('turno_ativo_id', response.turno.id_abastecimento.toString());
-        console.log('💾 ID do turno salvo no localStorage:', response.turno.id_abastecimento);
+      if (isEditMode && abastecimentoEditando) {
+        // Modo de edição - salvar alterações usando rota de turnos
+        console.log('💾 Salvando alterações do abastecimento via rota de turnos:', abastecimentoEditando.id_abastecimento);
+        
+        // Usar a rota de adicionar equipamentos do sistema de turnos
+        const equipamentosParaAPI = equipamentosLista.map(eq => ({
+          equipamento_id: Number(eq.equipamento_id),
+          quantidade: Number(eq.quantidade),
+          horimetro: eq.horimetro ? Number(eq.horimetro) : undefined,
+          responsavel: eq.responsavel || undefined
+        }));
+        
+        const dadosParaEnviar = {
+          entrada_combustivel: Number(dadosIniciarTurno.entrada_combustivel) || 0,
+          equipamentos: equipamentosParaAPI
+        };
+        
+        console.log('📤 Dados sendo enviados para API:', JSON.stringify(dadosParaEnviar, null, 2));
+        
+        await turnoAbastecimentoService.adicionarEquipamentos(abastecimentoEditando.id_abastecimento, dadosParaEnviar);
+        
+        setSuccess('Abastecimento atualizado com sucesso!');
+        setOpenSnackbar(true);
+        
+        // Redirecionar para lista após salvar
+        setTimeout(() => {
+          navigate('/abastecimento');
+        }, 2000);
+        
+      } else {
+        // Modo normal - iniciar novo turno
+        console.log('🚀 Tentando iniciar turno com dados:', dadosIniciarTurno);
+        const response = await turnoAbastecimentoService.iniciarTurno(dadosIniciarTurno);
+        console.log('✅ Resposta do serviço:', response);
+        
+        setTurnoAtivo(response.turno);
+        setEquipamentosLista([]);
+        setEstadoInterface('turno_ativo');
+        
+        // Garantir que o ID do turno seja salvo no localStorage
+        if (response.turno?.id_abastecimento) {
+          localStorage.setItem('turno_ativo_id', response.turno.id_abastecimento.toString());
+          console.log('💾 ID do turno salvo no localStorage:', response.turno.id_abastecimento);
+        }
+        
+        setSuccess('Turno iniciado com sucesso!');
+        setOpenSnackbar(true);
+        
+        // Limpar formulário
+        setDadosIniciarTurno({
+          existencia_inicio: 0,
+          responsavel_abastecimento: '',
+          matricula: '',
+          matricula_ativo: '',
+          posto_abastecimento: '',
+          operador: '',
+          entrada_combustivel: 0
+        });
       }
-      
-      setSuccess('Turno iniciado com sucesso!');
-      setOpenSnackbar(true);
-      
-      // Limpar formulário
-      setDadosIniciarTurno({
-        existencia_inicio: 0,
-        responsavel_abastecimento: '',
-        posto_abastecimento: '',
-        operador: '',
-        entrada_combustivel: 0
-      });
     } catch (error: any) {
       console.error('❌ Erro detalhado ao iniciar turno:', {
         error,
@@ -390,6 +488,37 @@ function Abastecimento() {
     // Se chegou aqui, há turno ativo - adicionar equipamento
     console.log('✅ Turno ativo confirmado, adicionando equipamento:', turnoAtivo.id_abastecimento);
     await handleAdicionarEquipamento();
+  };
+
+  // Adicionar equipamento no modo de edição
+  const handleAdicionarEquipamentoEdicao = () => {
+    if (!equipamentoAtual.equipamento_id || equipamentoAtual.equipamento_id === 0) {
+      setError('Selecione um equipamento');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    if (!equipamentoAtual.quantidade || equipamentoAtual.quantidade <= 0) {
+      setError('Quantidade deve ser maior que zero');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    // Adicionar à lista local (será salvo quando clicar em "Salvar Alterações")
+    setEquipamentosLista([...equipamentosLista, equipamentoAtual]);
+    
+    // Limpar formulário
+    setEquipamentoAtual({
+      equipamento_id: 0,
+      nome: '',
+      codigo_ativo: '',
+      quantidade: 0,
+      horimetro: undefined,
+      responsavel: ''
+    });
+
+    setSuccess('Equipamento adicionado à lista! Clique em "Salvar Alterações" para confirmar.');
+    setOpenSnackbar(true);
   };
 
   // Adicionar equipamento à lista
@@ -550,11 +679,16 @@ function Abastecimento() {
         <Stack spacing={3}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <PlayArrowIcon color="primary" />
-            <Typography variant="h6">Iniciar Novo Turno</Typography>
+            <Typography variant="h6">
+              {isEditMode ? 'Editar Abastecimento' : 'Iniciar Novo Turno'}
+            </Typography>
           </Box>
           
           <Alert severity="info">
-            Nenhum turno ativo encontrado. Inicie um novo turno para começar o abastecimento.
+            {isEditMode 
+              ? 'Editando dados do abastecimento. Modifique os campos necessários e salve as alterações.'
+              : 'Nenhum turno ativo encontrado. Inicie um novo turno para começar o abastecimento.'
+            }
           </Alert>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -632,8 +766,22 @@ function Abastecimento() {
             disabled={loading}
             size="large"
           >
-            {loading ? 'Iniciando...' : 'Iniciar Turno'}
+            {loading 
+              ? (isEditMode ? 'Salvando...' : 'Iniciando...') 
+              : (isEditMode ? 'Salvar Alterações' : 'Iniciar Turno')
+            }
           </Button>
+          
+          {isEditMode && (
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/abastecimento')}
+              disabled={loading}
+              size="large"
+            >
+              Cancelar
+            </Button>
+          )}
         </Stack>
       </CardContent>
     </Card>
@@ -645,47 +793,51 @@ function Abastecimento() {
     
     return (
       <Stack spacing={3}>
-        {/* Informações do Turno */}
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <LocalGasStationIcon color="primary" />
-              <Typography variant="h6">Turno Ativo - ID: {turnoAtivo?.id_abastecimento}</Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
-                  <Typography variant="body2" color="primary.contrastText">Existência Inicial</Typography>
-                  <Typography variant="h6" color="primary.contrastText">{turnoAtivo?.existencia_inicio}L</Typography>
+        {/* Informações do Turno - só mostrar se não estiver em modo de edição */}
+        {!isEditMode && (
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <LocalGasStationIcon color="primary" />
+                <Typography variant="h6">Turno Ativo - ID: {turnoAtivo?.id_abastecimento}</Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
+                    <Typography variant="body2" color="primary.contrastText">Existência Inicial</Typography>
+                    <Typography variant="h6" color="primary.contrastText">{turnoAtivo?.existencia_inicio}L</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                    <Typography variant="body2" color="info.contrastText">Entrada</Typography>
+                    <Typography variant="h6" color="info.contrastText">{turnoAtivo?.entrada_combustivel || 0}L</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
+                    <Typography variant="body2" color="warning.contrastText">Total Abastecido</Typography>
+                    <Typography variant="h6" color="warning.contrastText">{totalAbastecido}L</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                    <Typography variant="body2" color="success.contrastText">Existência Calculada</Typography>
+                    <Typography variant="h6" color="success.contrastText">{existenciaCalculada}L</Typography>
+                  </Box>
                 </Box>
               </Box>
-              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-                  <Typography variant="body2" color="info.contrastText">Entrada</Typography>
-                  <Typography variant="h6" color="info.contrastText">{turnoAtivo?.entrada_combustivel || 0}L</Typography>
-                </Box>
-              </Box>
-              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
-                  <Typography variant="body2" color="warning.contrastText">Total Abastecido</Typography>
-                  <Typography variant="h6" color="warning.contrastText">{totalAbastecido}L</Typography>
-                </Box>
-              </Box>
-              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="body2" color="success.contrastText">Existência Calculada</Typography>
-                  <Typography variant="h6" color="success.contrastText">{existenciaCalculada}L</Typography>
-                </Box>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Abrir Turno */}
+        {/* Adicionar Equipamentos */}
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Abrir Turno</Typography>
+            <Typography variant="h6" gutterBottom>
+              {isEditMode ? 'Editar Equipamentos' : 'Abrir Turno'}
+            </Typography>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { md: 'end' } }}>
@@ -746,13 +898,13 @@ function Abastecimento() {
                 <Box sx={{ flex: { xs: 1, md: 2 }, minWidth: 120 }}>
                   <Button
                     variant="contained"
-                    onClick={handleAbrirTurno}
+                    onClick={isEditMode ? handleAdicionarEquipamentoEdicao : handleAbrirTurno}
                     startIcon={<OpenInNewIcon />}
                     disabled={loading || !equipamentoAtual.equipamento_id || !equipamentoAtual.quantidade}
                     fullWidth
                     color="primary"
                   >
-                    Abrir Turno
+                    {isEditMode ? 'Adicionar Equipamento' : 'Abrir Turno'}
                   </Button>
                 </Box>
               </Box>
@@ -803,16 +955,18 @@ function Abastecimento() {
           </Card>
         )}
 
-        {/* Botão Fechar Turno */}
-        <Button
-          variant="contained"
-          color="error"
-          onClick={() => setDialogFecharTurno(true)}
-          startIcon={<StopIcon />}
-          size="large"
-        >
-          Fechar Turno
-        </Button>
+        {/* Botão Fechar Turno - só mostrar se não estiver em modo de edição */}
+        {!isEditMode && (
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => setDialogFecharTurno(true)}
+            startIcon={<StopIcon />}
+            size="large"
+          >
+            Fechar Turno
+          </Button>
+        )}
       </Stack>
     );
   };
@@ -1033,7 +1187,7 @@ function Abastecimento() {
       {/* Renderizar baseado no estado */}
       {estadoInterface === 'verificando' && renderVerificando()}
       {estadoInterface === 'sem_turno' && renderSemTurno()}
-      {estadoInterface === 'turno_ativo' && renderTurnoAtivo()}
+      {(estadoInterface === 'turno_ativo' || (isEditMode && estadoInterface === 'sem_turno')) && renderTurnoAtivo()}
       {estadoInterface === 'turno_fechado' && renderTurnoFechado()}
 
       {/* Diálogo para fechar turno */}

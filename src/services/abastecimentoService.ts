@@ -81,6 +81,7 @@ export interface Abastecimento {
   entrada_combustivel: number;
   posto_abastecimento: string;
   matricula_ativo: string;
+  matricula?: string; // Added for compatibility with turno system
   operador: string;
   equipamentos_abastecimentos?: EquipamentoAbastecimento[];
   equipamentos?: EquipamentoAbastecimento[]; // Added for compatibility
@@ -221,6 +222,11 @@ export const abastecimentoService = {
 
   // Obter abastecimento por ID
   getById: async (id: string): Promise<Abastecimento> => {
+    return api.get<Abastecimento>(`/api/abastecimentos/${id}`);
+  },
+
+  // Alias para buscarPorId (compatibilidade)
+  buscarPorId: async (id: number): Promise<Abastecimento> => {
     return api.get<Abastecimento>(`/api/abastecimentos/${id}`);
   },
 
