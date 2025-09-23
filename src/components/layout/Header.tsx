@@ -393,7 +393,7 @@ function Header({ toggleDrawer }: HeaderProps) {
                   fontSize: { xs: '1.1rem', md: '1.25rem' }
                 }}
               >
-                Sistema Carmo
+                Sistema Carmon
               </Typography>
               <Typography 
                 variant="caption" 

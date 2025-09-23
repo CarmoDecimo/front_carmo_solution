@@ -7,11 +7,10 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Edit, Delete, Add, Download, LocalGasStation, Visibility } from '@mui/icons-material';
+import { Edit, Add, Download, LocalGasStation, Visibility } from '@mui/icons-material';
 import { abastecimentoService } from '../services/abastecimentoService';
 import type { Abastecimento } from '../services/abastecimentoService';
 import { userService } from '../services/userService';
-import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const AbastecimentoListaPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,13 +19,6 @@ const AbastecimentoListaPage: React.FC = () => {
   const [abastecimentos, setAbastecimentos] = useState<Abastecimento[]>([]);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-  
-  // Estados para modal de confirmação de exclusão
-  const [deleteDialog, setDeleteDialog] = useState({
-    open: false,
-    abastecimento: null as Abastecimento | null,
-    loading: false
-  });
   
   // Estados para modal de visualização
   const [viewDialog, setViewDialog] = useState({
@@ -71,34 +63,6 @@ const AbastecimentoListaPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDeleteClick = (abastecimento: Abastecimento) => {
-    setDeleteDialog({
-      open: true,
-      abastecimento,
-      loading: false
-    });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteDialog.abastecimento) return;
-
-    setDeleteDialog(prev => ({ ...prev, loading: true }));
-    try {
-      await abastecimentoService.delete(deleteDialog.abastecimento.id_abastecimento.toString());
-      setSnackbar({ open: true, message: 'Abastecimento excluído com sucesso!', severity: 'success' });
-      carregarAbastecimentos();
-      setDeleteDialog({ open: false, abastecimento: null, loading: false });
-    } catch (error) {
-      console.error('Erro ao excluir abastecimento:', error);
-      setSnackbar({ open: true, message: 'Erro ao excluir abastecimento', severity: 'error' });
-      setDeleteDialog(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialog({ open: false, abastecimento: null, loading: false });
   };
 
   const handleDownload = async (abastecimento: Abastecimento) => {
@@ -308,13 +272,6 @@ const AbastecimentoListaPage: React.FC = () => {
                       </IconButton>
                       <IconButton onClick={() => handleEdit(abastecimento)} color="primary" size="small">
                         <Edit />
-                      </IconButton>
-                      <IconButton 
-                        onClick={() => setDeleteDialog({ open: true, abastecimento, loading: false })} 
-                        color="error" 
-                        size="small"
-                      >
-                        <Delete />
                       </IconButton>
                     </Box>
                   </Box>
@@ -539,13 +496,6 @@ const AbastecimentoListaPage: React.FC = () => {
                       </IconButton>
                       <IconButton onClick={() => handleDownload(abastecimento)} color="success" size="small">
                         <Download />
-                      </IconButton>
-                      <IconButton 
-                        onClick={() => handleDeleteClick(abastecimento)} 
-                        color="error" 
-                        size="small"
-                      >
-                        <Delete />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -845,27 +795,6 @@ const AbastecimentoListaPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Modal de confirmação para exclusão */}
-      <ConfirmDialog
-        open={deleteDialog.open}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        title="Excluir Abastecimento"
-        message="Tem certeza que deseja excluir este abastecimento? Esta ação não pode ser desfeita."
-        confirmText="Excluir"
-        cancelText="Cancelar"
-        severity="error"
-        loading={deleteDialog.loading}
-        destructive={true}
-        itemDetails={deleteDialog.abastecimento ? [
-          { label: 'Data', value: new Date(deleteDialog.abastecimento.data_abastecimento).toLocaleDateString('pt-BR') },
-          { label: 'Operador', value: deleteDialog.abastecimento.operador },
-          { label: 'Posto', value: deleteDialog.abastecimento.posto_abastecimento },
-          { label: 'Responsável', value: deleteDialog.abastecimento.responsavel_abastecimento }
-        ] : []}
-        additionalInfo="Todos os dados relacionados a este abastecimento serão permanentemente removidos do sistema."
-      />
     </Container>
   );
 };
