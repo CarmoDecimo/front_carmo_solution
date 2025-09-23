@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Button, TextField, Stack, Alert, Snackbar,
   CircularProgress, Autocomplete, Table, TableBody, TableCell, TableHead, TableRow,
-  Divider, IconButton, Paper, TableContainer
+  Divider, IconButton, Paper, TableContainer, Dialog, DialogTitle, DialogContent, 
+  DialogActions, DialogContentText
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import CloseIcon from '@mui/icons-material/Close';
 import { equipamentosService } from '../services';
 import { abastecimentoService } from '../services/abastecimentoService';
 import turnoAbastecimentoService, { 
@@ -16,6 +18,7 @@ import turnoAbastecimentoService, {
   type AdicionarEquipamentosRequest
 } from '../services/turnoAbastecimento.service';
 import type { Equipamento } from '../services';
+import { useAuth } from '../contexts/auth/AuthContext';
 
 // Interface para equipamento na lista local
 interface EquipamentoLista {
@@ -30,6 +33,7 @@ interface EquipamentoLista {
 function Abastecimento() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   
   // Estados principais
   const [turnoAtivo, setTurnoAtivo] = useState<TurnoAbastecimento | null>(null);
@@ -55,12 +59,24 @@ function Abastecimento() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  
+  // Estados para modal de fechar turno
+  const [modalFecharTurno, setModalFecharTurno] = useState(false);
+  const [loadingFecharTurno, setLoadingFecharTurno] = useState(false);
+
+  // Verificar autenticação
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+  }, [isAuthenticated, navigate]);
 
   // Carregar dados ao montar o componente
   useEffect(() => {
-    if (id) {
+    if (id && isAuthenticated) {
       carregarTurno(Number(id));
-    } else {
+    } else if (isAuthenticated) {
       // Se não há ID, redirecionar para a lista
       navigate('/abastecimento');
     }
@@ -140,8 +156,8 @@ function Abastecimento() {
     }
   };
 
-  // Adicionar equipamento ao turno
-  const handleAdicionarEquipamento = async () => {
+  // Adicionar equipamento à lista local (sem enviar para API)
+  const handleAdicionarEquipamento = () => {
     if (!equipamentoAtual.equipamento_id || equipamentoAtual.equipamento_id === 0) {
       setError('Selecione um equipamento');
       setOpenSnackbar(true);
@@ -150,6 +166,39 @@ function Abastecimento() {
 
     if (!equipamentoAtual.quantidade || equipamentoAtual.quantidade <= 0) {
       setError('Quantidade deve ser maior que zero');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    // Verificar se o equipamento já está na lista
+    const equipamentoJaExiste = equipamentosLista.some(eq => eq.equipamento_id === equipamentoAtual.equipamento_id);
+    if (equipamentoJaExiste) {
+      setError('Este equipamento já foi adicionado à lista');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    // Adicionar à lista local
+    setEquipamentosLista([...equipamentosLista, equipamentoAtual]);
+    
+    // Limpar formulário
+    setEquipamentoAtual({
+      equipamento_id: 0,
+      nome: '',
+      codigo_ativo: '',
+      quantidade: 0,
+      horimetro: undefined,
+      responsavel: ''
+    });
+
+    setSuccess('Equipamento adicionado à lista!');
+    setOpenSnackbar(true);
+  };
+
+  // Enviar todos os equipamentos para a API
+  const handleEnviarEquipamentos = async () => {
+    if (equipamentosLista.length === 0) {
+      setError('Adicione pelo menos um equipamento à lista antes de enviar');
       setOpenSnackbar(true);
       return;
     }
@@ -164,46 +213,81 @@ function Abastecimento() {
     try {
       const dados: AdicionarEquipamentosRequest = {
         entrada_combustivel: entradaCombustivel,
-        equipamentos: [{
-          equipamento_id: equipamentoAtual.equipamento_id,
-          quantidade: equipamentoAtual.quantidade,
-          horimetro: equipamentoAtual.horimetro,
-          responsavel: equipamentoAtual.responsavel
-        }]
+        equipamentos: equipamentosLista.map(eq => ({
+          equipamento_id: eq.equipamento_id,
+          quantidade: eq.quantidade,
+          horimetro: eq.horimetro,
+          responsavel: eq.responsavel
+        }))
       };
 
-      console.log('� Enviando dados para API:', dados);
+      console.log('⛽ Enviando todos os equipamentos para API:', dados);
+      console.log('📋 Total de equipamentos a enviar:', equipamentosLista.length);
       
       await turnoAbastecimentoService.adicionarEquipamentos(turnoAtivo.id_abastecimento, dados);
-      
-      // Adicionar à lista local
-      setEquipamentosLista([...equipamentosLista, equipamentoAtual]);
       
       // Atualizar entrada de combustível no turno
       setTurnoAtivo({
         ...turnoAtivo,
         entrada_combustivel: entradaCombustivel
       });
-      
-      // Limpar formulário
-      setEquipamentoAtual({
-        equipamento_id: 0,
-        nome: '',
-        codigo_ativo: '',
-        quantidade: 0,
-        horimetro: undefined,
-        responsavel: ''
-      });
 
-      setSuccess('Equipamento adicionado com sucesso!');
+      setSuccess('Todos os equipamentos foram enviados com sucesso!');
       setOpenSnackbar(true);
       
+      // Opcional: Redirecionar para a lista após sucesso
+      setTimeout(() => {
+        navigate('/abastecimento');
+      }, 2000);
+      
     } catch (error: any) {
-      console.error('❌ Erro ao adicionar equipamento:', error);
-      setError(error.response?.data?.message || 'Erro ao adicionar equipamento');
+      console.error('❌ Erro ao enviar equipamentos:', error);
+      setError(error.response?.data?.message || 'Erro ao enviar equipamentos');
       setOpenSnackbar(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fechar turno de abastecimento
+  const handleFecharTurno = async () => {
+    if (!turnoAtivo) {
+      setError('Turno não encontrado');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    setLoadingFecharTurno(true);
+    try {
+      const { totalAbastecido } = calcularTotais();
+      const existenciaFim = turnoAtivo.existencia_inicio + entradaCombustivel - totalAbastecido;
+
+      const dados = {
+        existencia_fim: existenciaFim,
+        responsavel_abastecimento: turnoAtivo.responsavel_abastecimento
+      };
+
+      console.log('🔒 Fechando turno com dados:', dados);
+      console.log('📊 Cálculo: existência_fim =', turnoAtivo.existencia_inicio, '+', entradaCombustivel, '-', totalAbastecido, '=', existenciaFim);
+
+      await turnoAbastecimentoService.fecharTurno(dados);
+
+      setSuccess('Turno fechado com sucesso!');
+      setOpenSnackbar(true);
+      setModalFecharTurno(false);
+
+      // Redirecionar para a lista após sucesso
+      setTimeout(() => {
+        navigate('/abastecimento');
+      }, 2000);
+
+    } catch (error: any) {
+      console.error('❌ Erro ao fechar turno:', error);
+      setError(error.response?.data?.message || 'Erro ao fechar turno');
+      setOpenSnackbar(true);
+      setModalFecharTurno(false);
+    } finally {
+      setLoadingFecharTurno(false);
     }
   };
 
@@ -229,6 +313,18 @@ function Abastecimento() {
   const handleVoltar = () => {
     navigate('/abastecimento');
   };
+
+  // Estado de carregamento de autenticação
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8 }}>
+        <CircularProgress size={60} sx={{ mb: 3 }} />
+        <Typography variant="h6" color="text.secondary">
+          Verificando autenticação...
+        </Typography>
+      </Box>
+    );
+  }
 
   // Estado de carregamento
   if (loadingTurno) {
@@ -257,21 +353,37 @@ function Abastecimento() {
 
   return (
     <Box sx={{ padding: 3 }}>
-      {/* Header com botão voltar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={handleVoltar}
-        >
-          Voltar
-        </Button>
+      {/* Header com botão voltar e fechar turno */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <LocalGasStationIcon color="primary" />
-          <Typography variant="h4">
-            Editar Abastecimento - Turno #{turnoAtivo.id_abastecimento}
-          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={handleVoltar}
+          >
+            Voltar
+          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h4">
+              Editar Abastecimento - Turno #{turnoAtivo.id_abastecimento}
+            </Typography>
+          </Box>
         </Box>
+        
+        {/* Botão Fechar Turno */}
+        <Button
+          variant="contained"
+          color="error"
+          startIcon={<CloseIcon />}
+          onClick={() => setModalFecharTurno(true)}
+          disabled={loadingFecharTurno}
+          sx={{ 
+            bgcolor: 'error.main',
+            '&:hover': { bgcolor: 'error.dark' }
+          }}
+        >
+          Fechar Turno
+        </Button>
       </Box>
 
       <Stack spacing={3}>
@@ -279,7 +391,7 @@ function Abastecimento() {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
-              📊 Informações do Turno (Somente Leitura)
+             Informações do Turno
             </Typography>
             
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
@@ -358,7 +470,7 @@ function Abastecimento() {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
-              ⛽ Adicionar Equipamento ao Turno
+              Adicionar Equipamento ao Turno
             </Typography>
             
             {/* Campo de entrada de combustível editável */}
@@ -440,12 +552,12 @@ function Abastecimento() {
                 <Button
                   variant="contained"
                   onClick={handleAdicionarEquipamento}
-                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
-                  disabled={loading || !equipamentoAtual.equipamento_id || !equipamentoAtual.quantidade}
+                  startIcon={<AddIcon />}
+                  disabled={!equipamentoAtual.equipamento_id || !equipamentoAtual.quantidade}
                   fullWidth
                   sx={{ height: 56 }}
                 >
-                  {loading ? '' : 'Adicionar'}
+                  Adicionar à Lista
                 </Button>
               </Box>
             </Box>
@@ -457,7 +569,7 @@ function Abastecimento() {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
-                📋 Equipamentos Abastecidos ({equipamentosLista.length})
+                Equipamentos Abastecidos ({equipamentosLista.length})
               </Typography>
               
               <TableContainer component={Paper} variant="outlined">
@@ -495,6 +607,28 @@ function Abastecimento() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              
+              
+              
+              {/* Botão para enviar todos os equipamentos */}
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleEnviarEquipamentos}
+                  disabled={loading || equipamentosLista.length === 0}
+                  
+                  sx={{ 
+                    minWidth: 200,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    bgcolor: 'success.main',
+                    '&:hover': { bgcolor: 'success.dark' }
+                  }}
+                >
+                  {loading ? 'Enviando...' : `Salvar`}
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         )}
@@ -522,6 +656,80 @@ function Abastecimento() {
           {error || success}
         </Alert>
       </Snackbar>
+
+      {/* Modal de confirmação para fechar turno */}
+      <Dialog
+        open={modalFecharTurno}
+        onClose={() => setModalFecharTurno(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'error.main', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <CloseIcon />
+          Confirmar Fechamento do Turno
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2 }}>
+          <DialogContentText sx={{ mb: 3 }}>
+            Tem certeza que deseja fechar o turno #{turnoAtivo?.id_abastecimento}? 
+            Esta ação não pode ser desfeita.
+          </DialogContentText>
+          
+          {/* Resumo dos cálculos */}
+          <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, mb: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+              📊 Resumo dos Cálculos
+            </Typography>
+            
+            <Stack spacing={1}>
+              <Typography variant="body2">
+                <strong>Existência Início:</strong> {turnoAtivo?.existencia_inicio} L
+              </Typography>
+              <Typography variant="body2">
+                <strong>Entrada Combustível:</strong> {entradaCombustivel} L
+              </Typography>
+              <Typography variant="body2">
+                <strong>Total Abastecido:</strong> {calcularTotais().totalAbastecido} L
+              </Typography>
+              <Divider />
+              <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                <strong>Existência Final:</strong> {calcularTotais().existenciaCalculada} L
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Fórmula: Existência Final = Existência Início + Entrada Combustível - Total Abastecido
+              </Typography>
+            </Stack>
+          </Box>
+          
+          <Typography variant="body2" color="text.secondary">
+            <strong>Responsável:</strong> {turnoAtivo?.responsavel_abastecimento}
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={() => setModalFecharTurno(false)}
+            disabled={loadingFecharTurno}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            variant="contained"
+            color="error"
+            onClick={handleFecharTurno}
+            disabled={loadingFecharTurno}
+            startIcon={loadingFecharTurno ? <CircularProgress size={20} color="inherit" /> : <CloseIcon />}
+          >
+            {loadingFecharTurno ? 'Fechando...' : 'Confirmar Fechamento'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

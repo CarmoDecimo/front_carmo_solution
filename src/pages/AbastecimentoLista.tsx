@@ -10,6 +10,7 @@ import { useTheme } from '@mui/material/styles';
 import { Edit, Delete, Add, Download, LocalGasStation, Visibility } from '@mui/icons-material';
 import { abastecimentoService } from '../services/abastecimentoService';
 import type { Abastecimento } from '../services/abastecimentoService';
+import { userService } from '../services/userService';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const AbastecimentoListaPage: React.FC = () => {
@@ -32,6 +33,9 @@ const AbastecimentoListaPage: React.FC = () => {
     open: false,
     abastecimento: null as Abastecimento | null
   });
+  
+  // Estado para nome do criador
+  const [criadorNome, setCriadorNome] = useState<string>('');
   
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -165,15 +169,29 @@ const AbastecimentoListaPage: React.FC = () => {
     navigate(`/abastecimento/editar/${abastecimento.id_abastecimento}`);
   };
 
-  const handleView = (abastecimento: Abastecimento) => {
+  const handleView = async (abastecimento: Abastecimento) => {
     setViewDialog({
       open: true,
       abastecimento
     });
+    
+    // Buscar nome do criador se tiver ID
+    if (abastecimento.criado_por) {
+      try {
+        const user = await userService.getById(abastecimento.criado_por);
+        setCriadorNome(user.nome);
+      } catch (error) {
+        console.error('Erro ao buscar dados do criador:', error);
+        setCriadorNome('Usuário não encontrado');
+      }
+    } else {
+      setCriadorNome('N/A');
+    }
   };
 
   const handleViewClose = () => {
     setViewDialog({ open: false, abastecimento: null });
+    setCriadorNome('');
   };
 
 
@@ -603,21 +621,13 @@ const AbastecimentoListaPage: React.FC = () => {
                   </Grid>
                   <Grid size={6}>
                     <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                      <Typography variant="caption" color="text.secondary">Centro de Custo ID</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {viewDialog.abastecimento.centro_custo_id}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid size={6}>
-                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                       <Typography variant="caption" color="text.secondary">Operador</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 500 }}>
                         {viewDialog.abastecimento.operador}
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid size={12}>
                     <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                       <Typography variant="caption" color="text.secondary">Posto de Abastecimento</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 500 }}>
@@ -718,25 +728,6 @@ const AbastecimentoListaPage: React.FC = () => {
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid size={6}>
-                    <Box sx={{ 
-                      p: 2.5, 
-                      bgcolor: 'linear-gradient(135deg,rgba(101, 168, 223, 0.81) 0%,rgb(42, 104, 175) 100%)', 
-                      borderRadius: 2, 
-                      border: 2, 
-                      borderColor: 'rgba(42, 104, 175, 0.6)',
-                      boxShadow: '0 1px 2px rgba(42, 104, 175, 0.1)',
-                      transition: 'transform 0.2s ease-in-out',
-                      '&:hover': { transform: 'translateY(-2px)' }
-                    }}>
-                      <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.9 }}>
-                        Custo Total
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white', mt: 0.5, fontSize: '1.3rem' }}>
-                        {viewDialog.abastecimento.custo ? `${viewDialog.abastecimento.custo.toFixed(2)} Kz` : 'N/A'}
-                      </Typography>
-                    </Box>
-                  </Grid>
                 </Grid>
               </Box>
 
@@ -760,7 +751,7 @@ const AbastecimentoListaPage: React.FC = () => {
                     <Box sx={{ p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                       <Typography variant="caption" color="text.secondary">Criado Por</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {viewDialog.abastecimento.criado_por}
+                        {criadorNome || 'Carregando...'}
                       </Typography>
                     </Box>
                   </Grid>
