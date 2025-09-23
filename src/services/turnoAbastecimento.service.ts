@@ -86,7 +86,7 @@ export const turnoAbastecimentoService = {
   iniciarTurno: async (dados: IniciarTurnoRequest): Promise<TurnoResponse> => {
     try {
       console.log('🚀 Iniciando turno com dados:', dados);
-      const response = await api.post<TurnoResponse>('/abastecimentos/iniciar-turno', dados);
+      const response = await api.post<TurnoResponse>('/api/abastecimentos/iniciar-turno', dados);
       
       // Salvar ID do turno ativo no localStorage
       if (response.success && response.turno?.id_abastecimento) {
@@ -118,7 +118,7 @@ export const turnoAbastecimentoService = {
     try {
       console.log('⛽ Adicionando equipamentos ao turno:', turnoId, dados);
       const response = await api.put<AdicionarEquipamentosResponse>(
-        `/abastecimentos/${turnoId}/adicionar-equipamentos`,
+        `/api/abastecimentos/${turnoId}/adicionar-equipamentos`,
         dados
       );
       
@@ -144,7 +144,7 @@ export const turnoAbastecimentoService = {
   fecharTurno: async (dados: FecharTurnoRequest): Promise<TurnoResponse> => {
     try {
       console.log('🔒 Fechando turno com dados:', dados);
-      const response = await api.put<TurnoResponse>('/abastecimentos/fechar-turno', dados);
+      const response = await api.put<TurnoResponse>('/api/abastecimentos/fechar-turno', dados);
       
       // Limpar turno ativo do localStorage
       localStorage.removeItem('turno_ativo_id');
@@ -161,7 +161,7 @@ export const turnoAbastecimentoService = {
   consultarTurno: async (turnoId: number): Promise<ConsultarTurnoResponse> => {
     try {
       console.log('🔍 Consultando turno:', turnoId);
-      const response = await api.get<ConsultarTurnoResponse>(`/abastecimentos/${turnoId}`);
+      const response = await api.get<ConsultarTurnoResponse>(`/api/abastecimentos/${turnoId}`);
       
       return response;
     } catch (error: any) {
