@@ -19,12 +19,18 @@ export interface Equipamento {
   ultima_revisao_data?: string;
   intervalo_manutencao: number;
   observacoes?: string;
-  centros_custo?: Array<{ // Mantido para compatibilidade
+  centros_custo?: {
+    centro_custo_id: number;
+    nome: string;
+    codigo?: string;
+    data_associacao?: string;
+    associacao_ativa?: boolean;
+  } | Array<{
     centro_custo_id: number;
     nome: string;
     data_associacao: string;
     associacao_ativa?: boolean;
-  }>;
+  }> | null;
   categorias_equipamentos?: {
     categoria_id: number;
     nome: string;
@@ -104,7 +110,12 @@ export const equipamentosService = {
     if (filters?.categoria_id) params.append('categoria_id', filters.categoria_id.toString());
     if (filters?.status_equipamento) params.append('status_equipamento', filters.status_equipamento);
     if (filters?.centro_custo_id) params.append('centro_custo_id', filters.centro_custo_id.toString());
-    if (filters?.alerta_manutencao !== undefined) params.append('alerta_manutencao', filters.alerta_manutencao.toString());
+    
+    // CORREÇÃO: Só enviar o parâmetro alerta_manutencao quando for true
+    // Quando for false, não enviar para mostrar todos os equipamentos
+    if (filters?.alerta_manutencao === true) {
+      params.append('alerta_manutencao', 'true');
+    }
     
     const queryString = params.toString();
     const url = queryString ? `/api/equipamentos?${queryString}` : '/api/equipamentos';

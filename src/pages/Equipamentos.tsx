@@ -9,38 +9,8 @@ import {
   Edit, Delete, Add, Visibility, Construction, Warning, Speed, Link, LinkOff, Build 
 } from '@mui/icons-material';
 import { equipamentosService, categoriaEquipamentoService } from '../services';
-import type { Categoria } from '../services';
+import type { Categoria, Equipamento } from '../services';
 import ConfirmDialog from '../components/common/ConfirmDialog';
-
-// Interface para Equipamento conforme API
-interface Equipamento {
-  equipamento_id: number;
-  nome: string;
-  codigo_ativo: string;
-  categoria: string;
-  categoria_id?: number;
-  horimetro_atual: number;
-  km_atual?: number;
-  status_equipamento: 'ativo' | 'manutencao' | 'parado';
-  horas_para_vencer: number;
-  alerta_manutencao: boolean;
-  ultima_revisao_horimetro?: number;
-  proxima_revisao_horimetro?: number;
-  data_ultima_leitura?: string;
-  ultima_revisao_data?: string;
-  intervalo_manutencao?: number;
-  observacoes?: string;
-  centros_custo: {
-    centro_custo_id: number;
-    nome: string;
-    codigo: string;
-  } | null;
-  categorias_equipamentos?: {
-    categoria_id: number;
-    nome: string;
-    descricao: string;
-  };
-}
 
 // Interface para Centro de Custo
 interface CentroCusto {
@@ -100,47 +70,61 @@ const EquipamentosPage: React.FC = () => {
     loading: false
   });
   
-  // Estados de filtros com persistência no localStorage
+  // Estados de filtros - SEMPRE iniciar com valores padrão para mostrar todos
   const [filtros, setFiltros] = useState(() => {
-    try {
-      const savedFilters = localStorage.getItem('equipamentos-filtros');
-      if (savedFilters) {
-        const parsed = JSON.parse(savedFilters);
-        return {
-          nome: parsed.nome || '',
-          categoria_id: parsed.categoria_id || '',
-          status_equipamento: parsed.status_equipamento || 'todos',
-          centro_custo_id: parsed.centro_custo_id || '',
-          alerta_manutencao: parsed.alerta_manutencao || false
-        };
-      }
-    } catch (error) {
-      console.warn('Erro ao carregar filtros salvos:', error);
-    }
-    
-    // Valores padrão se não houver filtros salvos
-    return {
+    // Valores padrão para mostrar todos os equipamentos inicialmente
+    const defaultFilters = {
       nome: '',
       categoria_id: '',
       status_equipamento: 'todos',
       centro_custo_id: '',
       alerta_manutencao: false
     };
+
+    // Para debug, vamos verificar se há filtros salvos que possam estar causando problema
+    try {
+      const savedFilters = localStorage.getItem('equipamentos-filtros');
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters);
+        console.log('🔍 Filtros salvos encontrados no localStorage:', parsed);
+        // Por enquanto, ignorar filtros salvos e sempre iniciar limpo
+        console.log('🔄 Ignorando filtros salvos para garantir exibição completa inicial');
+      }
+    } catch (error) {
+      console.warn('Erro ao verificar filtros salvos:', error);
+    }
+    
+    return defaultFilters;
   });
 
-  // Salvar filtros no localStorage sempre que mudarem
+  // Salvar filtros no localStorage sempre que mudarem (desabilitado temporariamente)
   useEffect(() => {
     try {
-      localStorage.setItem('equipamentos-filtros', JSON.stringify(filtros));
+      // Comentado temporariamente para evitar persistência de filtros problemáticos
+      // localStorage.setItem('equipamentos-filtros', JSON.stringify(filtros));
+      console.log('💾 Filtros atualizados (não salvando no localStorage):', filtros);
     } catch (error) {
       console.warn('Erro ao salvar filtros:', error);
     }
   }, [filtros]);
 
-  // Carregar dados ao montar componente
+  // Estado para controlar se é a primeira carga
+  const [primeiraCarrega, setPrimeiraCarrega] = useState(true);
+
+  // Carregar dados ao montar componente (primeira vez sem filtros)
   useEffect(() => {
-    carregarDados();
-  }, [filtros]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (primeiraCarrega) {
+      carregarDadosInicial();
+      setPrimeiraCarrega(false);
+    }
+  }, [primeiraCarrega]);
+
+  // Recarregar dados quando filtros mudarem (apenas após primeira carga)
+  useEffect(() => {
+    if (!primeiraCarrega) {
+      carregarDados();
+    }
+  }, [filtros, primeiraCarrega]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recarregar categorias quando a página receber foco (para sincronizar com mudanças)
   useEffect(() => {
@@ -157,6 +141,13 @@ const EquipamentosPage: React.FC = () => {
     await carregarCategorias();
     await carregarCentrosCusto();
     await carregarEquipamentos();
+  };
+
+  const carregarDadosInicial = async () => {
+    // Carregar dados da API sem aplicar filtros na primeira carga
+    await carregarCategorias();
+    await carregarCentrosCusto();
+    await carregarTodosEquipamentos();
   };
 
   // Função para garantir comportamento consistente independente do ambiente
@@ -177,201 +168,94 @@ const EquipamentosPage: React.FC = () => {
     verificarComportamentoFiltro();
     
     try {
-      const token = localStorage.getItem('authToken');
+      console.log('🔍 Carregando equipamentos com filtros:', filtros);
       
-      // NOVA ESTRATÉGIA: Sempre fazer uma requisição de "verificação de saúde" primeiro
-      // para saber quantos equipamentos realmente existem
-      let totalEquipamentosEsperados = 0;
-      try {
-        console.log('🔍 Fazendo verificação de saúde da API...');
-        const healthCheckResponse = await fetch('http://localhost:3001/api/equipamentos', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        const healthResult = await healthCheckResponse.json();
-        if (healthResult.success) {
-          totalEquipamentosEsperados = healthResult.data?.length || 0;
-          console.log('✅ Verificação de saúde:', {
-            totalEquipamentos: totalEquipamentosEsperados,
-            comAlerta: healthResult.data?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0,
-            semAlerta: healthResult.data?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0
-          });
-        }
-      } catch (healthError) {
-        console.warn('⚠️ Verificação de saúde falhou, continuando normalmente');
-      }
+      // Preparar filtros para o service
+      const filtrosService = {
+        categoria_id: filtros.categoria_id ? Number(filtros.categoria_id) : undefined,
+        status_equipamento: filtros.status_equipamento !== 'todos' ? filtros.status_equipamento : undefined,
+        centro_custo_id: filtros.centro_custo_id ? Number(filtros.centro_custo_id) : undefined,
+        alerta_manutencao: filtros.alerta_manutencao // O service já trata corretamente este campo
+      };
       
-      const params = new URLSearchParams();
-      
-      // Aplicar filtros
-      if (filtros.nome) params.append('nome', filtros.nome);
-      if (filtros.categoria_id) params.append('categoria_id', filtros.categoria_id);
-      if (filtros.status_equipamento !== 'todos') params.append('status_equipamento', filtros.status_equipamento);
-      if (filtros.centro_custo_id) params.append('centro_custo_id', filtros.centro_custo_id);
-      
-      // Lógica mais robusta para o parâmetro de alerta
-      // Se o switch está LIGADO (true): enviar 'true' para mostrar apenas com alerta
-      // Se o switch está DESLIGADO (false): NÃO enviar o parâmetro para mostrar todos
-      if (filtros.alerta_manutencao) {
-        params.append('alerta_manutencao', 'true');
-        console.log('🔍 Filtro aplicado: APENAS equipamentos COM alerta de manutenção');
-      } else {
-        console.log('🔍 Filtro aplicado: TODOS os equipamentos (sem filtro de alerta)');
-        console.log('🔍 Esperado receber:', totalEquipamentosEsperados, 'equipamentos');
-      }
-      
-      console.log('🔍 URL completa da requisição:', `http://localhost:3001/api/equipamentos?${params.toString()}`);
-      console.log('🔍 Estado dos filtros:', filtros);
-
-      const response = await fetch(`http://localhost:3001/api/equipamentos?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // Remover campos undefined
+      Object.keys(filtrosService).forEach(key => {
+        if (filtrosService[key as keyof typeof filtrosService] === undefined) {
+          delete filtrosService[key as keyof typeof filtrosService];
         }
       });
-
-      const result = await response.json();
       
-      console.log('📊 Resposta da API:', {
-        success: result.success,
-        totalEquipamentos: result.data?.length || 0,
-        equipamentosComAlerta: result.data?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0,
-        equipamentosSemAlerta: result.data?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0
+      console.log('🔍 Filtros enviados para o service:', filtrosService);
+      
+      // Usar o service em vez de fetch direto
+      const equipamentosData = await equipamentosService.getAll(filtrosService);
+      
+      console.log('📊 Equipamentos recebidos:', {
+        total: equipamentosData?.length || 0,
+        comAlerta: equipamentosData?.filter(eq => eq.alerta_manutencao)?.length || 0,
+        semAlerta: equipamentosData?.filter(eq => !eq.alerta_manutencao)?.length || 0
       });
       
-      if (result.success) {
-        // Verificação mais robusta: detectar problemas de filtragem
-        const totalRecebido = result.data?.length || 0;
-        const comAlerta = result.data?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0;
-        const semAlerta = result.data?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0;
+      if (equipamentosData) {
+        setEquipamentos(equipamentosData);
+        setFallbackUsado(false);
         
-        // Detectar problemas potenciais usando dados da verificação de saúde
-        const problemaDetectado = (
-          // Switch desligado mas lista vazia
-          (!filtros.alerta_manutencao && totalRecebido === 0 && totalEquipamentosEsperados > 0) ||
-          // Switch desligado mas recebeu menos equipamentos que o esperado
-          (!filtros.alerta_manutencao && totalEquipamentosEsperados > 0 && totalRecebido < totalEquipamentosEsperados) ||
-          // Switch desligado mas só tem equipamentos sem alerta (suspeito se deveria ter com alerta)
-          (!filtros.alerta_manutencao && comAlerta === 0 && semAlerta > 0 && totalEquipamentosEsperados > semAlerta)
-        );
-        
-        if (problemaDetectado) {
-          console.warn('⚠️ PROBLEMA DE FILTRAGEM DETECTADO:', {
-            switchLigado: filtros.alerta_manutencao,
-            totalRecebido,
-            comAlerta,
-            semAlerta,
-            esperado: 'Todos os equipamentos quando switch desligado'
-          });
-          console.warn('⚠️ Tentando múltiplas estratégias de fallback...');
-          
-          // Estratégia 1: Tentar com parâmetro 'all'
-          try {
-            const fallbackParams1 = new URLSearchParams();
-            // Copiar outros filtros mas não o de alerta
-            if (filtros.nome) fallbackParams1.append('nome', filtros.nome);
-            if (filtros.categoria_id) fallbackParams1.append('categoria_id', filtros.categoria_id);
-            if (filtros.status_equipamento !== 'todos') fallbackParams1.append('status_equipamento', filtros.status_equipamento);
-            if (filtros.centro_custo_id) fallbackParams1.append('centro_custo_id', filtros.centro_custo_id);
-            fallbackParams1.append('alerta_manutencao', 'all');
-            
-            const fallbackResponse1 = await fetch(`http://localhost:3001/api/equipamentos?${fallbackParams1}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            const fallbackResult1 = await fallbackResponse1.json();
-            if (fallbackResult1.success && fallbackResult1.data?.length > totalRecebido) {
-              console.log('✅ Fallback 1 (all) funcionou! Dados mais completos recebidos');
-              setEquipamentos(fallbackResult1.data);
-              setFallbackUsado(true);
-              setSnackbar({ 
-                open: true, 
-                message: 'Detectado problema de filtragem. Usando modo de compatibilidade.', 
-                severity: 'warning'
-              });
-              return; // Sair da função, sucesso
-            }
-            
-            // Estratégia 2: Tentar sem nenhum parâmetro de alerta
-            const fallbackParams2 = new URLSearchParams();
-            if (filtros.nome) fallbackParams2.append('nome', filtros.nome);
-            if (filtros.categoria_id) fallbackParams2.append('categoria_id', filtros.categoria_id);
-            if (filtros.status_equipamento !== 'todos') fallbackParams2.append('status_equipamento', filtros.status_equipamento);
-            if (filtros.centro_custo_id) fallbackParams2.append('centro_custo_id', filtros.centro_custo_id);
-            // NÃO adicionar alerta_manutencao
-            
-            const fallbackResponse2 = await fetch(`http://localhost:3001/api/equipamentos?${fallbackParams2}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            const fallbackResult2 = await fallbackResponse2.json();
-            if (fallbackResult2.success && fallbackResult2.data?.length > totalRecebido) {
-              console.log('✅ Fallback 2 (sem parâmetro) funcionou! Dados mais completos recebidos');
-              setEquipamentos(fallbackResult2.data);
-              setFallbackUsado(true);
-              setSnackbar({ 
-                open: true, 
-                message: 'Detectado problema de filtragem. Usando modo de compatibilidade.', 
-                severity: 'warning'
-              });
-              return; // Sair da função, sucesso
-            }
-            
-            // Estratégia 3: Usar dados da verificação de saúde se disponível
-            if (totalEquipamentosEsperados > 0) {
-              console.log('⚠️ Usando dados da verificação de saúde como último recurso');
-              try {
-                const healthResponse = await fetch('http://localhost:3001/api/equipamentos', {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-                const healthResult = await healthResponse.json();
-                if (healthResult.success && healthResult.data?.length > 0) {
-                  console.log('✅ Usando dados da verificação de saúde');
-                  setEquipamentos(healthResult.data);
-                  setFallbackUsado(true);
-                  setSnackbar({ 
-                    open: true, 
-                    message: 'Problema crítico de filtragem detectado. Usando dados diretos da API.', 
-                    severity: 'warning'
-                  });
-                  return; // Sair da função, sucesso
-                }
-              } catch (healthFallbackError) {
-                console.error('❌ Até a verificação de saúde falhou:', healthFallbackError);
-              }
-            }
-            
-          } catch (fallbackError) {
-            console.error('❌ Todas as estratégias de fallback falharam:', fallbackError);
-          }
-        }
-        
-        // Se chegou até aqui, usar dados originais
-        setEquipamentos(result.data);
-        
-        // Log adicional para debug
-        if (result.data?.length === 0) {
-          console.warn('⚠️ API retornou lista vazia de equipamentos');
+        // Log informativo
+        const totalCarregado = equipamentosData.length;
+        if (totalCarregado === 0) {
+          console.warn('⚠️ Nenhum equipamento encontrado com os filtros aplicados');
+        } else {
+          console.log('✅ Equipamentos carregados com sucesso:', totalCarregado);
         }
       } else {
-        console.error('❌ Erro na resposta da API:', result);
+        console.error('❌ Service retornou dados vazios');
         setSnackbar({ open: true, message: 'Erro ao carregar equipamentos', severity: 'error' });
+        setEquipamentos([]);
       }
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
       setSnackbar({ open: true, message: 'Erro ao carregar equipamentos da API', severity: 'error' });
-      setEquipamentos([]); // Lista vazia em caso de erro
+      setEquipamentos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const carregarTodosEquipamentos = async () => {
+    setLoading(true);
+    
+    try {
+      console.log('🔍 Carregando TODOS os equipamentos (primeira carga)...');
+
+      // Usar o service sem filtros para mostrar todos os equipamentos
+      const equipamentosData = await equipamentosService.getAll();
+      
+      console.log('📊 Resposta do service (todos os equipamentos):', {
+        totalEquipamentos: equipamentosData?.length || 0,
+        equipamentosComAlerta: equipamentosData?.filter((eq: Equipamento) => eq.alerta_manutencao)?.length || 0,
+        equipamentosSemAlerta: equipamentosData?.filter((eq: Equipamento) => !eq.alerta_manutencao)?.length || 0
+      });
+      
+      if (equipamentosData) {
+        setEquipamentos(equipamentosData);
+        setFallbackUsado(false);
+        
+        // Log informativo sobre a carga inicial
+        const totalCarregado = equipamentosData.length;
+        if (totalCarregado > 0) {
+          console.log('✅ Carga inicial bem-sucedida:', totalCarregado, 'equipamentos carregados');
+        } else {
+          console.warn('⚠️ Nenhum equipamento encontrado na carga inicial');
+        }
+      } else {
+        console.error('❌ Service retornou dados vazios');
+        setSnackbar({ open: true, message: 'Erro ao carregar equipamentos', severity: 'error' });
+        setEquipamentos([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar todos os equipamentos:', error);
+      setSnackbar({ open: true, message: 'Erro ao carregar equipamentos da API', severity: 'error' });
+      setEquipamentos([]);
     } finally {
       setLoading(false);
     }
@@ -908,10 +792,11 @@ const EquipamentosPage: React.FC = () => {
                   color="warning"
                 />
               }
-              label="Apenas com alerta de manutenção"
+              label={filtros.alerta_manutencao ? "Apenas com alerta de manutenção" : "Mostrando todos os equipamentos"}
               sx={{ 
                 '& .MuiFormControlLabel-label': { 
-                  fontSize: { xs: '0.875rem', md: '1rem' } 
+                  fontSize: { xs: '0.875rem', md: '1rem' },
+                  color: filtros.alerta_manutencao ? 'warning.main' : 'text.secondary'
                 } 
               }}
             />
@@ -920,6 +805,16 @@ const EquipamentosPage: React.FC = () => {
               <Chip
                 label="Modo Compatibilidade"
                 color="warning"
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.75rem' }}
+              />
+            )}
+            
+            {!filtros.alerta_manutencao && (
+              <Chip
+                label="Todos os equipamentos"
+                color="info"
                 size="small"
                 variant="outlined"
                 sx={{ fontSize: '0.75rem' }}
@@ -938,13 +833,23 @@ const EquipamentosPage: React.FC = () => {
                 centro_custo_id: '',
                 alerta_manutencao: false
               };
+              
+              // Limpar localStorage completamente
+              localStorage.removeItem('equipamentos-filtros');
+              console.log('🧹 localStorage limpo e filtros resetados');
+              
+              // Aplicar filtros limpos
               setFiltros(filtrosLimpos);
               setFallbackUsado(false);
-              localStorage.removeItem('equipamentos-filtros');
+              
+              // Forçar recarregamento de todos os equipamentos
+              setTimeout(() => {
+                carregarTodosEquipamentos();
+              }, 100);
             }}
             sx={{ minWidth: 'auto' }}
           >
-            Limpar Filtros
+            Limpar & Recarregar
           </Button>
         </Box>
       </Paper>
@@ -1086,10 +991,10 @@ const EquipamentosPage: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {equipamento.centros_custo ? (
+                    {equipamento.centros_custo && !Array.isArray(equipamento.centros_custo) ? (
                       <Chip
                         key={equipamento.centros_custo.centro_custo_id}
-                        label={`${equipamento.centros_custo.nome} (${equipamento.centros_custo.codigo})`}
+                        label={`${equipamento.centros_custo.nome} ${equipamento.centros_custo.codigo ? `(${equipamento.centros_custo.codigo})` : ''}`}
                         size="small"
                         variant="outlined"
                         onDelete={() => removerAssociacao(equipamento.equipamento_id)}
@@ -1716,10 +1621,10 @@ const EquipamentosPage: React.FC = () => {
                         }}
                       >
                         <Typography variant="body1" fontWeight="medium" color="success.dark">
-                          {equipamentoDetalhes.centros_custo.nome}
+                          {!Array.isArray(equipamentoDetalhes.centros_custo) ? equipamentoDetalhes.centros_custo.nome : 'Centro de Custo'}
                         </Typography>
                         <Typography variant="body2" color="success.main">
-                          Código: {equipamentoDetalhes.centros_custo.codigo}
+                          Código: {!Array.isArray(equipamentoDetalhes.centros_custo) && equipamentoDetalhes.centros_custo.codigo || 'N/A'}
                         </Typography>
                       </Box>
                     </Box>
