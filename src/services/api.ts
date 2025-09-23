@@ -1,6 +1,14 @@
 // Configuração base da API
 const API_BASE_URL = 'http://localhost:3001';
 
+// Callback para lidar com erros de autenticação (será definido pelo AuthContext)
+let handleAuthError: (() => void) | null = null;
+
+// Função para registrar o callback de erro de autenticação
+export const setAuthErrorHandler = (handler: () => void) => {
+  handleAuthError = handler;
+};
+
 // Classe customizada para erros da API
 export class ApiException extends Error {
   status: number;
@@ -61,6 +69,24 @@ const makeRequest = async <T>(
         errorMessage = errorData.message || errorMessage;
       } catch {
         // Se não conseguir fazer parse do JSON, usa a mensagem padrão
+      }
+      
+      // Se o erro for 401 (Não autorizado), redireciona para o login
+      if (response.status === 401) {
+        // Remove o token inválido
+        localStorage.removeItem('authToken');
+        
+        // Se há um handler registrado (pelo AuthContext), usa ele
+        if (handleAuthError) {
+          handleAuthError();
+        } else {
+          // Fallback: redireciona diretamente se não há handler registrado
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
+        
+        throw new ApiException(errorMessage, response.status, errorData);
       }
       
       throw new ApiException(errorMessage, response.status, errorData);

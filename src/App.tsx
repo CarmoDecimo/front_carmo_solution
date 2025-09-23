@@ -18,6 +18,7 @@ import LoginPage from './pages/auth/LoginPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import { AuthProvider } from './contexts/auth/AuthContext';
 import { ProtectedRoute, PublicRoute } from './contexts/auth/ProtectedRoute';
+import { useAuthInterceptor } from './hooks/useAuthInterceptor';
 import './App.css';
 
 // Componente de layout protegido com cabeçalho e sidebar
@@ -59,24 +60,26 @@ const ProtectedLayout = () => {
   );
 };
 
-function App() {
+// Componente interno para usar o hook de interceptação
+const AppWithInterceptor = () => {
+  useAuthInterceptor(); // Configura o interceptor de erros de autenticação
+  
   return (
-    <AuthProvider>
-      <Routes>
-        {/* Rota padrão - redireciona para login se não autenticado, ou dashboard se autenticado */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        
-        {/* Rotas públicas */}
-        <Route element={<PublicRoute />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/esqueci-senha" element={<ForgotPasswordPage />} />
-        </Route>
-        
-        {/* Rotas protegidas */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<ProtectedLayout />}>
-            {/* Página inicial */}
-            <Route path="/dashboard" element={<Dashboard />} />
+    <Routes>
+      {/* Rota padrão - redireciona para login se não autenticado, ou dashboard se autenticado */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      
+      {/* Rotas públicas */}
+      <Route element={<PublicRoute />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/esqueci-senha" element={<ForgotPasswordPage />} />
+      </Route>
+      
+      {/* Rotas protegidas */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedLayout />}>
+          {/* Página inicial */}
+          <Route path="/dashboard" element={<Dashboard />} />
             
             {/* Módulo 1: Oficina */}
             <Route path="/oficina" element={<OficinaPage />} />
@@ -146,6 +149,13 @@ function App() {
         {/* Rota coringa para qualquer outro caminho não definido */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+    );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppWithInterceptor />
     </AuthProvider>
   );
 }
