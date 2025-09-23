@@ -9,7 +9,7 @@ import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Abastecimento from './pages/Abastecimento';
 import AbastecimentoLista from './pages/AbastecimentoLista';
-import Manutencao from './pages/Manutencao';
+import AbastecimentoTurnos from './pages/AbastecimentoTurnos';
 import OficinaPage from './pages/Oficina';
 import CalendarioIndex from './pages/CalendarioIndex';
 import GestaoUsuarios from './pages/GestaoUsuarios';
@@ -110,27 +110,16 @@ const AppWithInterceptor = () => {
             
             {/* Módulo 2: Abastecimento */}
             <Route path="/abastecimento" element={<AbastecimentoLista />} />
+            <Route path="/abastecimento/turnos" element={<AbastecimentoTurnos />} />
             <Route path="/abastecimento/adicionar" element={<Abastecimento />} />
             <Route path="/abastecimento/editar/:id" element={<Abastecimento />} />
-            <Route path="/abastecimento/configuracao" element={
-              <Box sx={{ p: 3 }}>
-                <h2 className="text-2xl font-semibold mb-4">Configuração do Centro de Abastecimento</h2>
-                <p className="text-gray-600">Configure as informações do centro de abastecimento</p>
-              </Box>
-            } />
+            
             
             {/* Módulo 3: Alertas */}
             <Route path="/alertas" element={<AlertasPage />} />
             
             {/* Módulo 4: Calendário de Manutenção */}
             <Route path="/calendario" element={<CalendarioIndex />} />
-            <Route path="/calendario/mapa" element={<Manutencao />} />
-            <Route path="/calendario/relatorios" element={
-              <Box sx={{ p: 3 }}>
-                <h2 className="text-2xl font-semibold mb-4">Relatórios de Manutenção</h2>
-                <p className="text-gray-600">Relatórios programados de manutenções futuras</p>
-              </Box>
-            } />
             
             {/* Módulo 5: Gestão de Usuários */}
             <Route path="/usuarios" element={<GestaoUsuarios />} />

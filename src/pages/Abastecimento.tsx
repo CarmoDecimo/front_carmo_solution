@@ -677,14 +677,14 @@ function Abastecimento() {
         
         <DialogContent sx={{ mt: 2 }}>
           <DialogContentText sx={{ mb: 3 }}>
-            Tem certeza que deseja fechar o turno #{turnoAtivo?.id_abastecimento}? 
+            Tem certeza que deseja fechar o turno? 
             Esta ação não pode ser desfeita.
           </DialogContentText>
           
           {/* Resumo dos cálculos */}
           <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, mb: 2 }}>
             <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              📊 Resumo dos Cálculos
+              Resumo dos Cálculos
             </Typography>
             
             <Stack spacing={1}>
@@ -701,9 +701,7 @@ function Abastecimento() {
               <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                 <strong>Existência Final:</strong> {calcularTotais().existenciaCalculada} L
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Fórmula: Existência Final = Existência Início + Entrada Combustível - Total Abastecido
-              </Typography>
+              
             </Stack>
           </Box>
           

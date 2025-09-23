@@ -4,7 +4,10 @@ import { api } from './api';
 export interface FiltrosManutencao {
   data_inicio?: string;
   data_fim?: string;
-  status?: 'planeada' | 'realizada' | 'atrasada' | 'cancelada';
+  mes?: number;
+  ano?: number;
+  status?: 'pendente' | 'realizada' | 'atrasada' | 'cancelada';
+  prioridade?: 'critica' | 'urgente' | 'atencao' | 'normal';
   centro_custo_id?: number;
   equipamento_id?: number;
 }
@@ -12,6 +15,7 @@ export interface FiltrosManutencao {
 export interface ManutencaoCalendario {
   id: string;
   equipamento: {
+    equipamento_id: string;
     numero_patrimonio: string;
     marca: string;
     modelo: string;
@@ -19,7 +23,7 @@ export interface ManutencaoCalendario {
   data_prevista: string;
   horimetro_previsto?: number;
   status: 'pendente' | 'realizada' | 'atrasada' | 'cancelada';
-  prioridade?: 'alta' | 'media' | 'baixa';
+  prioridade?: 'critica' | 'urgente' | 'atencao' | 'normal';
   centro_custo?: string;
   tipo_manutencao?: string;
 }
@@ -57,6 +61,13 @@ export interface ResultadoDownload {
   filename: string;
 }
 
+export interface DashboardStats {
+  total_pendentes: number;
+  total_atrasadas: number;
+  total_realizadas_mes: number;
+  proximasVencimentos: number;
+}
+
 export interface ApiResponse<T = any> {
   data: T;
   headers: Record<string, string>;
@@ -84,10 +95,24 @@ class ManutencaoService {
       if (filtros.centro_custo_id) params.append('centro_custo_id', filtros.centro_custo_id.toString());
       if (filtros.equipamento_id) params.append('equipamento_id', filtros.equipamento_id.toString());
 
-      const response = await api.get<ManutencaoCalendario[]>(`/manutencoes/calendario?${params.toString()}`);
+      const response = await api.get<ManutencaoCalendario[]>(`/api/manutencoes/calendario?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Erro ao listar manutenções do calendário:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obter estatísticas do dashboard
+   * @returns Promise com as estatísticas
+   */
+  async obterEstatisticasDashboard(): Promise<DashboardStats> {
+    try {
+      const response = await api.get<DashboardStats>('/api/manutencoes/dashboard/estatisticas');
+      return response;
+    } catch (error) {
+      console.error('Erro ao obter estatísticas do dashboard:', error);
       throw error;
     }
   }
@@ -99,7 +124,7 @@ class ManutencaoService {
    */
   async gerarManutencaoPreventiva(equipamentoId: number): Promise<ManutencaoCalendario> {
     try {
-      const response = await api.post<ManutencaoCalendario>(`/manutencoes/preventiva/${equipamentoId}`);
+      const response = await api.post<ManutencaoCalendario>(`/api/manutencoes/preventiva/${equipamentoId}`);
       return response;
     } catch (error) {
       console.error('Erro ao gerar manutenção preventiva:', error);
@@ -114,7 +139,7 @@ class ManutencaoService {
    */
   async verificarLote(equipamentoIds: string[]): Promise<ResultadoVerificacaoLote> {
     try {
-      const response = await api.post<ResultadoVerificacaoLote>('/manutencoes/verificar-lote', {
+      const response = await api.post<ResultadoVerificacaoLote>('/api/manutencoes/verificar-lote', {
         equipamentoIds
       });
       return response;
@@ -130,7 +155,7 @@ class ManutencaoService {
    */
   async atualizarAtrasadas(): Promise<ResultadoAtualizacaoAtrasadas> {
     try {
-      const response = await api.post<ResultadoAtualizacaoAtrasadas>('/manutencoes/atualizar-atrasadas');
+      const response = await api.post<ResultadoAtualizacaoAtrasadas>('/api/manutencoes/atualizar-atrasadas');
       return response;
     } catch (error) {
       console.error('Erro ao atualizar manutenções atrasadas:', error);
@@ -163,7 +188,7 @@ class ManutencaoService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`http://localhost:3001/manutencoes/download?${params.toString()}`, {
+      const response = await fetch(`http://localhost:3001/api/manutencoes/download?${params.toString()}`, {
         method: 'GET',
         headers,
       });

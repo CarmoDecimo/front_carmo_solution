@@ -195,7 +195,7 @@ const AbastecimentoListaPage: React.FC = () => {
           variant="contained" 
           startIcon={<Add />}
           component={Link}
-          to="/abastecimento/adicionar"
+          to="/abastecimento/turnos"
           disabled={loading}
         >
           ABRIR NOVO TURNO

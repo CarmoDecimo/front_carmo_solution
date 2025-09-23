@@ -163,11 +163,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
     { 
       text: 'Calendário de Manutenção', 
       icon: <CalendarMonthIcon />, 
-      path: '/calendario',
-      subItems: [
-        { text: 'Mapa de Manutenções', icon: <CalendarMonthIcon />, path: '/calendario/mapa' },
-        { text: 'Relatório de Manutenções', icon: <SummarizeIcon />, path: '/calendario/relatorios' },
-      ]
+      path: '/calendario'
     },
     
     // Módulo 3: Alertas (depois do Calendário)
