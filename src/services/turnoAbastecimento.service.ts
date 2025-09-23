@@ -27,6 +27,7 @@ export interface EquipamentoTurno {
 export interface IniciarTurnoRequest {
   existencia_inicio: number;
   responsavel_abastecimento: string;
+  matricula?: string;
   posto_abastecimento?: string;
   operador?: string;
   entrada_combustivel?: number;
@@ -124,10 +125,14 @@ export const turnoAbastecimentoService = {
     } catch (error: any) {
       console.error('❌ Erro ao adicionar equipamentos:', error);
       
-      // Tratamento específico para nenhum turno em aberto
+      // Tratamento específico para erros de turno
       if (error.response?.status === 400 && error.response?.data?.message?.includes('Nenhum turno em aberto')) {
         localStorage.removeItem('turno_ativo_id');
-        console.log('🗑️ Turno ativo removido do localStorage');
+        console.log('🗑️ Turno ativo removido do localStorage (400 - Nenhum turno em aberto)');
+      } else if (error.response?.status === 404) {
+        // Turno não encontrado (ID inválido ou turno foi fechado)
+        localStorage.removeItem('turno_ativo_id');
+        console.log('🗑️ Turno ativo removido do localStorage (404 - Turno não encontrado)');
       }
       
       throw error;
@@ -196,52 +201,53 @@ export const turnoAbastecimentoService = {
       }
     }
     
-    // Se não encontrou via localStorage, tentar iniciar um turno "fake" para descobrir se existe um ativo
-    try {
-      console.log('🔍 Tentando descobrir turno ativo via API...');
-      
-      // Fazer uma requisição fake para iniciar turno - se falhar, pode nos dar o ID do turno ativo
-      await turnoAbastecimentoService.iniciarTurno({
-        existencia_inicio: 1,
-        responsavel_abastecimento: 'verificacao'
-      });
-      
-      // Se chegou aqui, não há turno ativo
-      console.log('📭 Nenhum turno ativo encontrado');
-      return null;
-      
-    } catch (error: any) {
-      // Se o erro é "turno já existe", extrair o ID e consultar
-      if (error.response?.status === 400 && error.response?.data?.message?.includes('turno em aberto')) {
-        const turnoIdExtraido = turnoAbastecimentoService.extrairTurnoIdDaMensagem(error.response.data.message);
-        
-        if (turnoIdExtraido) {
-          console.log('✅ Turno ativo descoberto via erro da API, ID:', turnoIdExtraido);
-          
-          // Salvar no localStorage para próximas consultas
-          localStorage.setItem('turno_ativo_id', turnoIdExtraido);
-          
-          try {
-            const response = await turnoAbastecimentoService.consultarTurno(Number(turnoIdExtraido));
-            console.log('✅ Turno ativo carregado:', response.abastecimento);
-            return response.abastecimento;
-          } catch (consultaError) {
-            console.error('❌ Erro ao consultar turno descoberto:', consultaError);
-            localStorage.removeItem('turno_ativo_id');
-          }
-        }
-      }
-      
-      console.log('📭 Nenhum turno ativo encontrado');
-      return null;
-    }
+    // Se não encontrou via localStorage, não há turno ativo
+    console.log('📭 Nenhum turno ativo encontrado (localStorage vazio)');
+    return null;
   },
 
   // Extrair ID do turno da mensagem de erro
   extrairTurnoIdDaMensagem: (mensagem: string): string | null => {
-    // Buscar padrões: "ID: 18" ou "(ID: 18)"
-    const match = mensagem.match(/\(?ID:\s*(\d+)\)?/);
-    return match ? match[1] : null;
+    // Buscar múltiplos padrões para capturar o ID
+    const patterns = [
+      /ID:\s*(\d+)/,           // "ID: 36"
+      /\(ID:\s*(\d+)\)/,       // "(ID: 36)"
+      /turno\s+(\d+)/i,        // "turno 36"
+      /ID\s+(\d+)/i            // "ID 36"
+    ];
+    
+    for (const pattern of patterns) {
+      const match = mensagem.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    
+    return null;
+  },
+
+  // Detectar e carregar turno ativo a partir de erro de inicialização
+  detectarTurnoAtivoDoErro: async (errorMessage: string): Promise<TurnoAbastecimento | null> => {
+    console.log('🔍 Tentando detectar turno ativo a partir do erro...');
+    
+    const turnoId = turnoAbastecimentoService.extrairTurnoIdDaMensagem(errorMessage);
+    
+    if (turnoId) {
+      console.log('🎯 ID do turno detectado:', turnoId);
+      localStorage.setItem('turno_ativo_id', turnoId);
+      
+      try {
+        const response = await turnoAbastecimentoService.consultarTurno(Number(turnoId));
+        console.log('✅ Turno ativo carregado:', response.abastecimento);
+        return response.abastecimento;
+      } catch (consultError) {
+        console.log('❌ Erro ao consultar turno detectado:', consultError);
+        localStorage.removeItem('turno_ativo_id');
+        return null;
+      }
+    }
+    
+    return null;
   },
 
   // Calcular existência final estimada

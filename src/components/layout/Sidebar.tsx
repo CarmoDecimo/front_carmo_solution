@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
@@ -26,6 +26,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../../contexts/auth/AuthContext';
+import turnoAbastecimentoService from '../../services/turnoAbastecimento.service';
 
 interface SidebarProps {
   open: boolean;
@@ -38,17 +39,59 @@ interface MenuItem {
   path: string;
   divider?: boolean;
   subItems?: MenuItem[];
+  customHandler?: () => void; // Para navegação personalizada
 }
 
 const DRAWER_WIDTH = 240;
 
 function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const { logout } = useAuth();
   
   const handleLogout = () => {
     logout();
+  };
+
+  // Função para navegar para o Centro de Abastecimento com verificação de turno ativo
+  const handleAbastecimentoNavigation = async () => {
+    console.log('🎯 Navegando para Centro de Abastecimento - verificando turno ativo...');
+    
+    // Fechar sidebar imediatamente para evitar conflitos de foco
+    onClose();
+    
+    try {
+      // Verificar se há turno ativo no localStorage e backend
+      const turnoAtivo = await turnoAbastecimentoService.verificarTurnoAtivo();
+      
+      if (turnoAtivo?.id_abastecimento) {
+        console.log('✅ Turno ativo encontrado:', turnoAtivo.id_abastecimento);
+        console.log('🎯 Redirecionando para página do turno ativo...');
+        
+        // Garantir que o ID está salvo no localStorage
+        localStorage.setItem('turno_ativo_id', turnoAtivo.id_abastecimento.toString());
+        console.log('💾 ID do turno salvo no localStorage:', turnoAtivo.id_abastecimento);
+        
+        // Navegar para a página de abastecimento que automaticamente detectará o turno ativo
+        navigate('/abastecimento');
+      } else {
+        console.log('📭 Nenhum turno ativo encontrado');
+        console.log('🏠 Redirecionando para página principal de abastecimento...');
+        
+        // Limpar localStorage se não há turno ativo
+        localStorage.removeItem('turno_ativo_id');
+        
+        // Navegar para a página principal de abastecimento
+        navigate('/abastecimento');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar turno ativo:', error);
+      console.log('🏠 Redirecionando para página principal de abastecimento (fallback)...');
+      
+      // Em caso de erro, navegar para a página principal
+      navigate('/abastecimento');
+    }
   };
   
   // Função para expandir/retrair um item do menu
@@ -83,8 +126,13 @@ function Sidebar({ open, onClose }: SidebarProps) {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Centro de custo', icon: <AccountBalanceIcon />, path: '/centro-custo' },
     
-    // Módulo 2: Abastecimento (movido para depois do Centro de custo)
-    { text: 'Centro de abastecimento', icon: <LocalGasStationIcon />, path: '/abastecimento' },
+    // Módulo 2: Abastecimento (com verificação automática de turno ativo)
+    { 
+      text: 'Centro de abastecimento', 
+      icon: <LocalGasStationIcon />, 
+      path: '/abastecimento',
+      customHandler: handleAbastecimentoNavigation
+    },
     
     // Módulo Equipamentos
     { 
@@ -158,11 +206,13 @@ function Sidebar({ open, onClose }: SidebarProps) {
                   <Box sx={{ display: 'flex', width: '100%' }}>
                     {/* Área principal - navega para o módulo */}
                     <ListItemButton
-                      component={Link}
-                      to={item.path}
+                      component={item.customHandler ? 'div' : Link}
+                      to={item.customHandler ? undefined : item.path}
+                      onClick={item.customHandler ? item.customHandler : undefined}
                       sx={{ 
                         flex: 1,
                         transition: 'all 0.2s',
+                        cursor: 'pointer',
                         '&:hover': {
                           backgroundColor: 'rgba(96, 165, 250, 0.05)'
                         }
@@ -204,12 +254,14 @@ function Sidebar({ open, onClose }: SidebarProps) {
                     </Box>
                   </Box>
                 ) : (
-                  // Para itens sem subitens: comportamento normal
+                  // Para itens sem subitens: comportamento normal ou customHandler
                   <ListItemButton
-                    component={Link}
-                    to={item.path}
+                    component={item.customHandler ? 'div' : Link}
+                    to={item.customHandler ? undefined : item.path}
+                    onClick={item.customHandler ? item.customHandler : undefined}
                     sx={{ 
                       transition: 'all 0.2s',
+                      cursor: 'pointer',
                       '&:hover': {
                         backgroundColor: 'rgba(96, 165, 250, 0.05)'
                       }
@@ -350,6 +402,15 @@ function Sidebar({ open, onClose }: SidebarProps) {
         onClose={onClose}
         ModalProps={{
           keepMounted: true,
+          // Corrigir problema de acessibilidade com aria-hidden
+          disablePortal: false,
+          hideBackdrop: false,
+          // Evitar que o modal aplique aria-hidden no root
+          disableScrollLock: true,
+          // Permitir foco nos elementos do drawer
+          disableEnforceFocus: false,
+          disableAutoFocus: false,
+          disableRestoreFocus: false
         }}
         sx={{
           display: { xs: 'block', md: 'none' }, // Mostra em xs, sm e oculta em md+
@@ -358,7 +419,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
             width: DRAWER_WIDTH,
             backgroundColor: 'background.paper',
             borderRight: '1px solid rgba(255,255,255,0.05)',
-          },
+          }
         }}
       >
         {drawer}

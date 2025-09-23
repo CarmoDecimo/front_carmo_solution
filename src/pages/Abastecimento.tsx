@@ -1,553 +1,346 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Typography from '@mui/material/Typography';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import IconButton from '@mui/material/IconButton';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
-import CircularProgress from '@mui/material/CircularProgress';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import AddIcon from '@mui/icons-material/Add';
+import {
+  Box, Typography, Card, CardContent, Button, TextField, Stack, Alert, Snackbar,
+  CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
+  Autocomplete, Table, TableBody, TableCell, TableHead, TableRow, Chip,
+  Divider, IconButton, Paper, TableContainer
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ClearAllIcon from '@mui/icons-material/ClearAll';
-import SaveIcon from '@mui/icons-material/Save';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { ptBR } from 'date-fns/locale';
-import { calcularExistenciaFinal } from '../templates/abastecimento/abastecimento-template';
-import { abastecimentoService, ApiException, API_BASE_URL } from '../services';
-// import { centroCustoService } from '../services'; // TODO: Usar quando API estiver implementada
-import type { CreateAbastecimentoRequest, Equipamento } from '../services';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import StopIcon from '@mui/icons-material/Stop';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import HistoryIcon from '@mui/icons-material/History';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { equipamentosService } from '../services';
+import turnoAbastecimentoService, { 
+  type TurnoAbastecimento, 
+  type IniciarTurnoRequest, 
+  type AdicionarEquipamentosRequest, 
+  type FecharTurnoRequest 
+} from '../services/turnoAbastecimento.service';
+import type { Equipamento } from '../services';
 
-// Tipos para os dados do abastecimento
-interface AbastecimentoLinha {
-  id: number;
-  equipamento: string;
-  activo: string;
-  matricula: string;
+// Estados da interface
+type EstadoInterface = 'verificando' | 'sem_turno' | 'turno_ativo' | 'turno_fechado';
+
+// Interface para equipamento na lista local
+interface EquipamentoLista {
+  equipamento_id: number;
+  nome: string;
+  codigo_ativo: string;
   quantidade: number;
-  kmh: number | null;
-  assinatura: string;
+  horimetro?: number;
+  responsavel?: string;
 }
 
 function Abastecimento() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const isEditMode = Boolean(id);
-  const [cabecalho, setCabecalho] = useState({
-    centroCusto: '',
-    centroCustoNome: '', // Novo campo para armazenar o nome do centro de custo
-    data: new Date(),
-    existenciaInicio: '',
-    entradaCombustivel: '',
-    posto: '',
-    matricula: '',
-    operador: ''
-  });
-
-  const [linhaAtual, setLinhaAtual] = useState<AbastecimentoLinha>({
-    id: 0,
-    equipamento: '',
-    activo: '',
-    matricula: '',
-    quantidade: 0,
-    kmh: null,
-    assinatura: ''
-  });
-  const [equipamentoSelecionado, setEquipamentoSelecionado] = useState<number | ''>('');
-
-  const [rodape, setRodape] = useState({
-    existenciaFim: '',
-    responsavelFinal: ''
-  });
-
-  const [linhas, setLinhas] = useState<AbastecimentoLinha[]>([]);
+  // Estados principais
+  const [estadoInterface, setEstadoInterface] = useState<EstadoInterface>('verificando');
+  const [turnoAtivo, setTurnoAtivo] = useState<TurnoAbastecimento | null>(null);
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
-  const [centrosCustoNomes, setCentrosCustoNomes] = useState<Record<number, string>>({});
+  const [equipamentosLista, setEquipamentosLista] = useState<EquipamentoLista[]>([]);
+  const [historico, setHistorico] = useState<TurnoAbastecimento[]>([]);
+  const [historicoTurnoAtivo, setHistoricoTurnoAtivo] = useState<any[]>([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  
+  // Estados para formulários
+  const [dadosIniciarTurno, setDadosIniciarTurno] = useState<IniciarTurnoRequest>({
+    existencia_inicio: 0,
+    responsavel_abastecimento: '',
+    matricula: '',
+    posto_abastecimento: '',
+    operador: '',
+    entrada_combustivel: 0
+  });
+  
+  const [equipamentoAtual, setEquipamentoAtual] = useState<EquipamentoLista>({
+    equipamento_id: 0,
+    nome: '',
+    codigo_ativo: '',
+    quantidade: 0,
+    horimetro: undefined,
+    responsavel: ''
+  });
+  
+  // Estados para diálogos
+  const [dialogFecharTurno, setDialogFecharTurno] = useState(false);
+  const [dadosFecharTurno, setDadosFecharTurno] = useState<FecharTurnoRequest>({
+    existencia_fim: 0,
+    responsavel_abastecimento: ''
+  });
+  
+  // Estados de controle
   const [loading, setLoading] = useState(false);
+  const [verificandoTurno, setVerificandoTurno] = useState(false);
+  const [ultimaVerificacao, setUltimaVerificacao] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  // Carregar equipamentos ao montar o componente
+  // Verificar turno ativo e carregar equipamentos ao montar o componente
   useEffect(() => {
-    fetchEquipamentos();
+    inicializarPagina();
   }, []);
 
-  // Carregar dados do abastecimento quando estiver em modo de edição
+  // Carregar histórico quando turno ativo ou equipamentos mudarem
   useEffect(() => {
-    if (isEditMode && id) {
-      carregarAbastecimento(id);
+    if (estadoInterface !== 'verificando') {
+      carregarHistorico();
     }
-  }, [isEditMode, id]);
+  }, [turnoAtivo, equipamentosLista, estadoInterface]);
 
-  // Buscar equipamentos
-  const fetchEquipamentos = async () => {
+  // Removido: Verificação automática ao focar na página para evitar requisições desnecessárias
+
+  // Forçar limpeza completa do estado
+  const forcarLimpezaCompleta = () => {
+    console.log('🧹 Forçando limpeza completa do estado...');
+    localStorage.removeItem('turno_ativo_id');
+    setTurnoAtivo(null);
+    setEquipamentosLista([]);
+    setEstadoInterface('sem_turno');
+    setError(null);
+    setSuccess(null);
+  };
+
+  // Inicializar página
+  const inicializarPagina = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/equipamentos`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setEquipamentos(result.data);
-        // Carregar nomes dos centros de custo
-        await loadCentrosCustoNomes(result.data);
-      } else {
-        setError('Erro ao carregar equipamentos');
-        setOpenSnackbar(true);
-        setEquipamentos([]); // Lista vazia em caso de erro
+      console.log('🔄 Inicializando página do Centro de Abastecimento...');
+      
+      // Verificar se há turno ativo no localStorage
+      const turnoId = localStorage.getItem('turno_ativo_id');
+      console.log('🔍 Verificando turno no localStorage:', turnoId);
+      
+      // Limpar possíveis turnos fake/problemáticos
+      if (turnoId && (turnoId === '34' || turnoId === 'verificacao' || turnoId === 'verificacao_automatica')) {
+        console.log('🗑️ Removendo turno fake/problemático do localStorage:', turnoId);
+        forcarLimpezaCompleta();
+        return; // Sair da função, página ficará no estado sem_turno
       }
+      
+      // Carregar equipamentos primeiro
+      await carregarEquipamentos();
+      
+      if (turnoId) {
+        console.log('🎯 Turno encontrado no localStorage, verificando se ainda existe...');
+        // Há turno no localStorage, verificar se ainda é válido (forçar verificação)
+        await verificarTurnoAtivo(true);
+      } else {
+        console.log('📭 Nenhum turno no localStorage, indo para página principal');
+        // Não há turno, ir direto para página principal
+        setEstadoInterface('sem_turno');
+      }
+    } catch (error) {
+      console.error('Erro ao inicializar página:', error);
+      setError('Erro ao carregar dados iniciais');
+      setOpenSnackbar(true);
+      // Em caso de erro, ir para página principal
+      setEstadoInterface('sem_turno');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar equipamentos
+  const carregarEquipamentos = async () => {
+    try {
+      const response = await equipamentosService.getAll();
+      setEquipamentos(response || []);
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
-      setError('Erro ao carregar equipamentos da API');
-      setOpenSnackbar(true);
-      setEquipamentos([]); // Lista vazia em caso de erro
-    } finally {
-      setLoading(false);
+      setEquipamentos([]);
     }
   };
 
-  // Carregar dados do abastecimento para edição
-  const carregarAbastecimento = async (abastecimentoId: string) => {
+  // Carregar histórico de turnos
+  const carregarHistorico = async () => {
+    setLoadingHistorico(true);
+    try {
+      // Se há turno ativo, carregar apenas histórico deste turno
+      if (turnoAtivo?.id_abastecimento) {
+        console.log('📋 Carregando histórico do turno ativo:', turnoAtivo.id_abastecimento);
+        // Por enquanto, usar dados mock até implementar API específica
+        setHistoricoTurnoAtivo([
+          {
+            data: new Date().toLocaleDateString('pt-BR'),
+            equipamento: 'Equipamentos do turno atual',
+            quantidade: equipamentosLista.reduce((total, eq) => total + eq.quantidade, 0),
+            responsavel: turnoAtivo.responsavel_abastecimento,
+            status: 'Em andamento'
+          }
+        ]);
+        setHistorico([]); // Limpar histórico geral
+      } else {
+        console.log('📋 Carregando histórico geral de turnos');
+        // Carregar todos os turnos (implementar API futuramente)
+        setHistorico([]);
+        setHistoricoTurnoAtivo([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error);
+      setHistorico([]);
+      setHistoricoTurnoAtivo([]);
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
+
+  // Verificar se há turno ativo
+  const verificarTurnoAtivo = async (forcarVerificacao = false) => {
+    const agora = Date.now();
+    
+    // Evitar chamadas múltiplas (debounce de 2 segundos) - exceto se forçado
+    if (!forcarVerificacao && verificandoTurno) {
+      console.log('🔄 Verificação de turno já em andamento, ignorando...');
+      return;
+    }
+    
+    if (!forcarVerificacao && agora - ultimaVerificacao < 2000) {
+      console.log('⏱️ Verificação muito recente, ignorando... (debounce)');
+      return;
+    }
+
+    try {
+      setVerificandoTurno(true);
+      setUltimaVerificacao(agora);
+      setEstadoInterface('verificando');
+      
+      console.log('🔍 APENAS VERIFICANDO turno ativo (SEM CRIAR NOVO)...');
+      
+      // IMPORTANTE: Apenas verificar, nunca criar novo turno
+      const turno = await turnoAbastecimentoService.verificarTurnoAtivo();
+      
+      // Turno já foi validado pela função verificarTurnoAtivo() do service
+      
+      if (turno) {
+        console.log('✅ Turno ativo encontrado e validado:', turno.id_abastecimento);
+        console.log('🎯 Redirecionando para página do turno ativo...');
+        setTurnoAtivo(turno);
+        // Converter equipamentos do turno para lista local
+        if (turno.equipamentos_abastecimentos) {
+          const equipamentosConvertidos = turno.equipamentos_abastecimentos.map((eq, index) => ({
+            equipamento_id: index + 1, // Temporário, pois não temos o ID real
+            nome: eq.equipamento,
+            codigo_ativo: eq.activo,
+            quantidade: eq.quantidade,
+            horimetro: eq.kmh || undefined,
+            responsavel: eq.assinatura || ''
+          }));
+          setEquipamentosLista(equipamentosConvertidos);
+          console.log('📋 Equipamentos do turno carregados:', equipamentosConvertidos.length);
+        }
+        setEstadoInterface('turno_ativo');
+      } else {
+        console.log('📭 Nenhum turno ativo encontrado');
+        console.log('🏠 Redirecionando para página principal de abastecimento...');
+        setEstadoInterface('sem_turno');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar turno ativo:', error);
+      // Em caso de erro, assumir que não há turno ativo
+      setEstadoInterface('sem_turno');
+    } finally {
+      setVerificandoTurno(false);
+    }
+  };
+
+  // Iniciar turno
+  const handleIniciarTurno = async () => {
+    if (!dadosIniciarTurno.existencia_inicio || dadosIniciarTurno.existencia_inicio <= 0) {
+      setError('Existência inicial deve ser maior que zero');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    if (!dadosIniciarTurno.responsavel_abastecimento.trim()) {
+      setError('Responsável pelo abastecimento é obrigatório');
+      setOpenSnackbar(true);
+      return;
+    }
+
     setLoading(true);
     try {
-      const abastecimento = await abastecimentoService.getById(abastecimentoId);
+      console.log('🚀 Tentando iniciar turno com dados:', dadosIniciarTurno);
+      const response = await turnoAbastecimentoService.iniciarTurno(dadosIniciarTurno);
+      console.log('✅ Resposta do serviço:', response);
       
-      // Preencher dados do cabeçalho
-      setCabecalho({
-        centroCusto: abastecimento.centro_custo_id || '',
-        centroCustoNome: '',
-        data: new Date(abastecimento.data_abastecimento),
-        existenciaInicio: abastecimento.existencia_inicio?.toString() || '',
-        entradaCombustivel: abastecimento.entrada_combustivel?.toString() || '',
-        posto: abastecimento.posto_abastecimento || '',
-        matricula: abastecimento.matricula_ativo || '',
-        operador: abastecimento.operador || ''
+      setTurnoAtivo(response.turno);
+      setEquipamentosLista([]);
+      setEstadoInterface('turno_ativo');
+      
+      // Garantir que o ID do turno seja salvo no localStorage
+      if (response.turno?.id_abastecimento) {
+        localStorage.setItem('turno_ativo_id', response.turno.id_abastecimento.toString());
+        console.log('💾 ID do turno salvo no localStorage:', response.turno.id_abastecimento);
+      }
+      
+      setSuccess('Turno iniciado com sucesso!');
+      setOpenSnackbar(true);
+      
+      // Limpar formulário
+      setDadosIniciarTurno({
+        existencia_inicio: 0,
+        responsavel_abastecimento: '',
+        posto_abastecimento: '',
+        operador: '',
+        entrada_combustivel: 0
       });
-
-      // Preencher dados do rodapé
-      setRodape({
-        existenciaFim: abastecimento.existencia_fim?.toString() || '',
-        responsavelFinal: abastecimento.responsavel_abastecimento || ''
+    } catch (error: any) {
+      console.error('❌ Erro detalhado ao iniciar turno:', {
+        error,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        stack: error.stack
       });
-
-      // Preencher equipamentos se existirem
-      if (abastecimento.equipamentos_abastecimentos) {
-        const linhasCarregadas = abastecimento.equipamentos_abastecimentos.map((eq, index) => ({
-          id: index + 1,
-          equipamento: eq.equipamento || '',
-          activo: eq.activo || '',
-          matricula: eq.matricula || '',
-          quantidade: eq.quantidade || 0,
-          kmh: eq.kmh || null,
-          assinatura: eq.assinatura || ''
-        }));
-        setLinhas(linhasCarregadas);
-      }
-
-      setSuccess('Dados do abastecimento carregados com sucesso!');
-    } catch (error) {
-      console.error('Erro ao carregar abastecimento:', error);
-      setError('Erro ao carregar dados do abastecimento');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Carregar nomes dos centros de custo para todos os equipamentos
-  const loadCentrosCustoNomes = async (equipamentos: Equipamento[]) => {
-    const centrosCustoIds = new Set<number>();
-    
-    // Coletar todos os IDs únicos de centros de custo
-    equipamentos.forEach(eq => {
-      if (eq.centro_custo_id) {
-        centrosCustoIds.add(eq.centro_custo_id);
-      }
-      // Verificar também a estrutura antiga se existir (array)
-      if (eq.centros_custo && Array.isArray(eq.centros_custo)) {
-        eq.centros_custo.forEach(cc => centrosCustoIds.add(cc.centro_custo_id));
-      }
-    });
-
-    // Buscar nomes para cada centro de custo
-    const nomes: Record<number, string> = {};
-    for (const id of centrosCustoIds) {
-      try {
-        const nome = await fetchCentroCustoNome(id);
-        nomes[id] = nome;
-      } catch (error) {
-        console.error(`Erro ao carregar centro de custo ${id}:`, error);
-        nomes[id] = `Centro de Custo ${id}`;
-      }
-    }
-    
-    setCentrosCustoNomes(nomes);
-  };
-
-  // Buscar nome do centro de custo
-  const fetchCentroCustoNome = async (centroCustoId: number): Promise<string> => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/centros-custo/${centroCustoId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const result = await response.json();
-      if (result.success && result.data) {
-        return result.data.nome || 'Centro de Custo não encontrado';
-      } else {
-        return 'Centro de Custo não encontrado';
-      }
-    } catch (error) {
-      console.error('Erro ao carregar centro de custo:', error);
-      return 'Erro ao carregar centro de custo';
-    }
-  };
-
-  // Handler para campos do cabeçalho
-  const handleCabecalhoChange = (field: string, value: any) => {
-    setCabecalho({
-      ...cabecalho,
-      [field]: value
-    });
-  };
-
-  // Handler para campos da linha atual
-  const handleLinhaChange = (field: string, value: any) => {
-    setLinhaAtual({
-      ...linhaAtual,
-      [field]: value
-    });
-  };
-
-  // Handler para seleção de equipamento
-  const handleEquipamentoChange = async (equipamentoId: number | string) => {
-    const id = equipamentoId === '' ? '' : Number(equipamentoId);
-    setEquipamentoSelecionado(id);
-    
-    if (id) {
-      const equipamento = equipamentos.find(eq => eq.equipamento_id === id);
-      if (equipamento) {
-        // Preencher os campos com os dados do equipamento selecionado
-        setLinhaAtual({
-          ...linhaAtual,
-          equipamento: equipamento.nome,
-          activo: equipamento.codigo_ativo,
-          matricula: equipamento.codigo_ativo // Usando código ativo como matrícula por padrão
-        });
+      
+      // Verificar se é erro de turno já existente (pode vir em diferentes formatos)
+      const errorMessage = error.response?.data?.message || error.message || '';
+      if (errorMessage.includes('turno em aberto') || errorMessage.includes('turno ativo')) {
+        console.log('🔄 Turno já existe, tentando detectar e carregar...');
+        console.log('📝 Mensagem completa:', errorMessage);
         
-        // Auto-preencher o centro de custo
-        if (equipamento.centro_custo_id) {
-          console.log('🏢 Preenchendo centro de custo com ID:', equipamento.centro_custo_id);
-          // Usar o nome do cache se disponível, senão buscar
-          let centroCustoNome = centrosCustoNomes[equipamento.centro_custo_id];
-          if (!centroCustoNome) {
-            centroCustoNome = await fetchCentroCustoNome(equipamento.centro_custo_id);
+        // Usar a nova função para detectar e carregar o turno ativo
+        const turnoDetectado = await turnoAbastecimentoService.detectarTurnoAtivoDoErro(errorMessage);
+        
+        if (turnoDetectado) {
+          // Turno detectado e carregado com sucesso
+          setTurnoAtivo(turnoDetectado);
+          setEstadoInterface('turno_ativo');
+          setSuccess('Turno ativo encontrado! Carregando dados do turno...');
+          
+          // Carregar equipamentos do turno se existirem
+          if (turnoDetectado.equipamentos_abastecimentos && turnoDetectado.equipamentos_abastecimentos.length > 0) {
+            const equipamentosFormatados = turnoDetectado.equipamentos_abastecimentos.map((eq: any) => ({
+              equipamento_id: eq.equipamento_id,
+              nome: eq.equipamento?.nome || `Equipamento ${eq.equipamento_id}`,
+              codigo_ativo: eq.equipamento?.codigo_ativo || '',
+              quantidade: eq.quantidade,
+              horimetro: eq.horimetro,
+              responsavel: eq.responsavel
+            }));
+            setEquipamentosLista(equipamentosFormatados);
           }
-          console.log('📝 Nome do centro de custo obtido:', centroCustoNome);
-          handleCabecalhoChange('centroCusto', equipamento.centro_custo_id.toString());
-          handleCabecalhoChange('centroCustoNome', centroCustoNome);
-          console.log('✅ Centro de custo definido no cabeçalho');
-        } else if (equipamento.centros_custo && equipamento.centros_custo.length > 0) {
-          // Fallback para estrutura antiga se existir
-          const centroCustoAtivo = equipamento.centros_custo.find(cc => cc.associacao_ativa);
-          if (centroCustoAtivo) {
-            let centroCustoNome = centrosCustoNomes[centroCustoAtivo.centro_custo_id] || centroCustoAtivo.nome;
-            if (!centroCustoNome) {
-              centroCustoNome = await fetchCentroCustoNome(centroCustoAtivo.centro_custo_id);
-            }
-            handleCabecalhoChange('centroCusto', centroCustoAtivo.centro_custo_id.toString());
-            handleCabecalhoChange('centroCustoNome', centroCustoNome);
-          }
+        } else {
+          console.log('❌ Não foi possível detectar ou carregar o turno ativo');
+          setError('Turno ativo detectado, mas não foi possível carregar. Tente novamente.');
         }
-      }
-    } else {
-      // Limpar campos se nenhum equipamento for selecionado
-      setLinhaAtual({
-        ...linhaAtual,
-        equipamento: '',
-        activo: '',
-        matricula: ''
-      });
-      // Limpar também o centro de custo
-      handleCabecalhoChange('centroCusto', '');
-      handleCabecalhoChange('centroCustoNome', '');
-    }
-  };
-
-  // Handler para campos do rodapé
-  const handleRodapeChange = (field: string, value: any) => {
-    setRodape({
-      ...rodape,
-      [field]: value
-    });
-  };
-
-  // Adicionar linha à tabela
-  const adicionarLinha = () => {
-    console.log('➕ Tentando adicionar linha...');
-    console.log('📊 Linha atual:', linhaAtual);
-    
-    // Validação básica
-    if (!linhaAtual.equipamento || !linhaAtual.matricula) {
-      console.error('❌ Validação falhou - campos obrigatórios vazios');
-      console.log('  - Equipamento:', linhaAtual.equipamento);
-      console.log('  - Matrícula:', linhaAtual.matricula);
-      setError('Preencha pelo menos Equipamento e Matrícula.');
-      setOpenSnackbar(true);
-      return;
-    }
-
-    const novaLinha = {
-      ...linhaAtual,
-      id: Date.now() // Usar timestamp como id único temporário
-    };
-
-    console.log('✅ Nova linha criada:', novaLinha);
-    
-    const novasLinhas = [...linhas, novaLinha];
-    console.log('📋 Lista atualizada de linhas:', novasLinhas);
-    console.log('📊 Total de linhas após adição:', novasLinhas.length);
-    
-    setLinhas(novasLinhas);
-
-    // Mostrar mensagem de sucesso
-    setSuccess(`Equipamento "${novaLinha.equipamento}" adicionado com sucesso!`);
-    setOpenSnackbar(true);
-
-    // Limpar linha atual
-    setLinhaAtual({
-      id: 0,
-      equipamento: '',
-      activo: '',
-      matricula: '',
-      quantidade: 0,
-      kmh: null,
-      assinatura: ''
-    });
-    setEquipamentoSelecionado('');
-  };
-
-  // Remover linha da tabela
-  const removerLinha = (id: number) => {
-    setLinhas(linhas.filter(linha => linha.id !== id));
-  };
-
-  // Limpar todos os dados
-  const limparTudo = () => {
-    if (window.confirm('Tem certeza que deseja limpar todos os dados?')) {
-      setCabecalho({
-        centroCusto: '',
-        centroCustoNome: '',
-        data: new Date(),
-        existenciaInicio: '',
-        entradaCombustivel: '',
-        posto: '',
-        matricula: '',
-        operador: ''
-      });
-      setLinhas([]);
-      setRodape({
-        existenciaFim: '',
-        responsavelFinal: ''
-      });
-      setLinhaAtual({
-        id: 0,
-        equipamento: '',
-        activo: '',
-        matricula: '',
-        quantidade: 0,
-        kmh: null,
-        assinatura: ''
-      });
-      setEquipamentoSelecionado('');
-    }
-  };
-
-  // Enviar dados para o backend
-  const enviarParaBackend = async () => {
-    console.log('🚀 Iniciando envio para backend');
-    console.log('📊 Estado completo no momento do envio:');
-    console.log('  - Cabeçalho:', cabecalho);
-    console.log('  - Rodapé:', rodape);
-    console.log('  - Linhas de equipamentos:', linhas);
-    console.log('  - Quantidade de linhas:', linhas.length);
-    console.log('  - Linha atual:', linhaAtual);
-    console.log('  - Equipamento selecionado:', equipamentoSelecionado);
-    
-    console.log('🏢 Centro de Custo:', cabecalho.centroCusto);
-    console.log('📝 Nome do Centro de Custo:', cabecalho.centroCustoNome);
-    
-    // Validação dos dados obrigatórios
-    console.log('🔍 Verificando validação do centro de custo:');
-    console.log('  - centroCusto (ID):', `"${cabecalho.centroCusto}"`);
-    console.log('  - centroCustoNome:', `"${cabecalho.centroCustoNome}"`);
-    console.log('  - Tipo de centroCusto:', typeof cabecalho.centroCusto);
-    console.log('  - Comprimento de centroCusto:', cabecalho.centroCusto?.length);
-    
-    // Como o centro de custo é preenchido automaticamente e o campo está desabilitado,
-    // vamos pular a validação se pelo menos o nome estiver preenchido
-    if ((!cabecalho.centroCusto || cabecalho.centroCusto === '' || cabecalho.centroCusto === 'undefined') && 
-        (!cabecalho.centroCustoNome || cabecalho.centroCustoNome === '')) {
-      console.error('❌ Centro de Custo está vazio (tanto ID quanto nome)');
-      setError('Centro de Custo é obrigatório - Selecione um equipamento primeiro');
-      setOpenSnackbar(true);
-      return;
-    }
-
-    // Se só o nome estiver preenchido mas não o ID, vamos permitir o envio
-    if (cabecalho.centroCustoNome && (!cabecalho.centroCusto || cabecalho.centroCusto === '')) {
-      console.log('⚠️ Apenas nome do centro de custo disponível, tentando prosseguir...');
-    }
-
-    console.log('✅ Centro de Custo válido:', cabecalho.centroCusto);
-
-    if (!cabecalho.existenciaInicio || !cabecalho.entradaCombustivel || !cabecalho.posto || 
-        !cabecalho.matricula || !cabecalho.operador || !rodape.responsavelFinal) {
-      setError('Todos os campos obrigatórios devem ser preenchidos');
-      setOpenSnackbar(true);
-      return;
-    }
-
-    if (linhas.length === 0) {
-      console.error('❌ Nenhum equipamento encontrado na lista');
-      console.log('📊 Estado atual das linhas:', linhas);
-      console.log('📊 Quantidade de linhas:', linhas.length);
-      setError('Nenhum equipamento foi adicionado. Selecione um equipamento e clique em "Adicionar" para incluí-lo na lista.');
-      setOpenSnackbar(true);
-      return;
-    }
-
-    console.log('✅ Equipamentos encontrados:', linhas.length);
-    console.log('📋 Lista de equipamentos:', linhas);
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Preparar dados para envio
-      console.log('📦 Preparando dados para envio...');
-      const dadosEnvio: CreateAbastecimentoRequest = {
-        // centro_custo_id removido
-        data_abastecimento: cabecalho.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
-        existencia_inicio: Number(cabecalho.existenciaInicio),
-        entrada_combustivel: Number(cabecalho.entradaCombustivel),
-        posto_abastecimento: cabecalho.posto,
-        matricula_ativo: cabecalho.matricula,
-        operador: cabecalho.operador,
-        equipamentos: linhas.map(linha => ({
-          equipamento: linha.equipamento,
-          activo: linha.activo,
-          matricula: linha.matricula,
-          quantidade: linha.quantidade,
-          kmh: linha.kmh || undefined,
-          assinatura: linha.assinatura
-        })),
-        existencia_fim: Number(rodape.existenciaFim) || calcularExistenciaFinal(
-          Number(cabecalho.existenciaInicio),
-          Number(cabecalho.entradaCombustivel),
-          linhas.map(linha => ({
-            equipamento: linha.equipamento,
-            activo: linha.activo,
-            matricula: linha.matricula,
-            quantidade: linha.quantidade,
-            kmH: linha.kmh || 0,
-            assinatura: linha.assinatura
-          }))
-        ),
-        responsavel_abastecimento: rodape.responsavelFinal
-      };
-      console.log('📤 Dados preparados para envio:', dadosEnvio);
-      console.log('📊 Validação final dos dados:');
-      console.log('  - data_abastecimento:', dadosEnvio.data_abastecimento);
-      console.log('  - existencia_inicio:', dadosEnvio.existencia_inicio, typeof dadosEnvio.existencia_inicio);
-      console.log('  - entrada_combustivel:', dadosEnvio.entrada_combustivel, typeof dadosEnvio.entrada_combustivel);
-      console.log('  - equipamentos length:', dadosEnvio.equipamentos.length);
-      console.log('  - equipamentos[0]:', dadosEnvio.equipamentos[0]);
-      console.log('  - existencia_fim:', dadosEnvio.existencia_fim, typeof dadosEnvio.existencia_fim);
-      console.log('  - responsavel_abastecimento:', dadosEnvio.responsavel_abastecimento);
-      
-      // Validar se todos os números são válidos
-      if (isNaN(dadosEnvio.existencia_inicio)) {
-        console.error('❌ existencia_inicio não é um número válido:', dadosEnvio.existencia_inicio);
-      }
-      if (isNaN(dadosEnvio.entrada_combustivel)) {
-        console.error('❌ entrada_combustivel não é um número válido:', dadosEnvio.entrada_combustivel);
-      }
-      if (isNaN(dadosEnvio.existencia_fim)) {
-        console.error('❌ existencia_fim não é um número válido:', dadosEnvio.existencia_fim);
-      }
-      
-      // Validar equipamentos
-      dadosEnvio.equipamentos.forEach((eq, index) => {
-        console.log(`📋 Equipamento ${index + 1}:`, eq);
-        if (isNaN(eq.quantidade)) {
-          console.error(`❌ Quantidade do equipamento ${index + 1} não é válida:`, eq.quantidade);
+      } else {
+        let errorMessage = 'Erro ao iniciar turno';
+        
+        // Verificar diferentes tipos de erro
+        if (error.status === 0 || error.message?.includes('conexão')) {
+          errorMessage = 'Erro de conexão com o servidor. Verifique se o backend está rodando.';
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
         }
-      });
-
-      // Enviar para o backend
-      let response;
-      if (isEditMode && id) {
-        console.log('🚀 Chamando abastecimentoService.update...');
-        response = await abastecimentoService.update(id, dadosEnvio);
-        setSuccess(`Abastecimento atualizado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
-      } else {
-        console.log('🚀 Chamando abastecimentoService.create...');
-        response = await abastecimentoService.create(dadosEnvio);
-        setSuccess(`Abastecimento criado com sucesso! Protocolo: ${response.numero_protocolo || response.id_abastecimento}`);
-      }
-      
-      setOpenSnackbar(true);
-      
-      // Navegar de volta para a lista após sucesso
-      setTimeout(() => {
-        navigate('/abastecimento');
-      }, 2000);
-
-    } catch (error) {
-      console.error('❌ ERRO COMPLETO ao enviar abastecimento:', error);
-      console.error('❌ Tipo do erro:', typeof error);
-      console.error('❌ Error.name:', (error as any)?.name);
-      console.error('❌ Error.message:', (error as any)?.message);
-      console.error('❌ Error.response:', (error as any)?.response);
-      console.error('❌ Error.response.data:', (error as any)?.response?.data);
-      console.error('❌ Error.response.status:', (error as any)?.response?.status);
-      console.error('❌ Error.stack:', (error as any)?.stack);
-      
-      if (error instanceof ApiException) {
-        setError(`Erro ao enviar: ${error.message}`);
-      } else if ((error as any)?.response?.data?.message) {
-        setError(`Erro do servidor: ${(error as any).response.data.message}`);
-      } else if ((error as any)?.message) {
-        setError(`Erro: ${(error as any).message}`);
-      } else {
-        setError('Erro inesperado ao enviar dados');
+        
+        console.error('💥 Erro final:', errorMessage);
+        setError(errorMessage);
       }
       setOpenSnackbar(true);
     } finally {
@@ -555,210 +348,446 @@ function Abastecimento() {
     }
   };
 
+  // Abrir turno (adicionar equipamento e iniciar se necessário)
+  const handleAbrirTurno = async () => {
+    console.log('🔓 Iniciando processo de abertura de turno...');
+    
+    // Se não há turno ativo, tentar detectar um existente primeiro
+    if (!turnoAtivo?.id_abastecimento) {
+      console.log('📭 Nenhum turno ativo detectado, verificando se existe algum...');
+      
+      setLoading(true);
+      try {
+        // Tentar verificar se há turno ativo no backend
+        await verificarTurnoAtivo(true);
+        
+        // Se ainda não há turno após verificação, redirecionar para criar
+        if (!turnoAtivo?.id_abastecimento) {
+          setError('Nenhum turno ativo encontrado. Redirecionando para iniciar novo turno...');
+          setOpenSnackbar(true);
+          
+          setTimeout(() => {
+            setEstadoInterface('sem_turno');
+            setError(null);
+          }, 2000);
+          return;
+        }
+      } catch (error) {
+        console.error('❌ Erro ao verificar turno:', error);
+        setError('Erro ao verificar turno ativo. Redirecionando para iniciar novo turno...');
+        setOpenSnackbar(true);
+        
+        setTimeout(() => {
+          setEstadoInterface('sem_turno');
+          setError(null);
+        }, 2000);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-      <Box sx={{ padding: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          {isEditMode ? 'Editar Abastecimento' : 'Controle de Abastecimento'}
-        </Typography>
+    // Se chegou aqui, há turno ativo - adicionar equipamento
+    console.log('✅ Turno ativo confirmado, adicionando equipamento:', turnoAtivo.id_abastecimento);
+    await handleAdicionarEquipamento();
+  };
 
-        {/* Cabeçalho */}
-        <Card sx={{ marginBottom: 3 }}>
+  // Adicionar equipamento à lista
+  const handleAdicionarEquipamento = async () => {
+    if (!equipamentoAtual.equipamento_id || equipamentoAtual.equipamento_id === 0) {
+      setError('Selecione um equipamento');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    if (!equipamentoAtual.quantidade || equipamentoAtual.quantidade <= 0) {
+      setError('Quantidade deve ser maior que zero');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    if (!turnoAtivo?.id_abastecimento) {
+      setError('Nenhum turno ativo encontrado');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    // Removido: Verificação preventiva desnecessária que fazia requisição extra
+
+    setLoading(true);
+    try {
+      const dados: AdicionarEquipamentosRequest = {
+        entrada_combustivel: turnoAtivo.entrada_combustivel,
+        equipamentos: [{
+          equipamento_id: equipamentoAtual.equipamento_id,
+          quantidade: equipamentoAtual.quantidade,
+          horimetro: equipamentoAtual.horimetro,
+          responsavel: equipamentoAtual.responsavel
+        }]
+      };
+
+      await turnoAbastecimentoService.adicionarEquipamentos(turnoAtivo.id_abastecimento, dados);
+      
+      // Adicionar à lista local
+      setEquipamentosLista([...equipamentosLista, equipamentoAtual]);
+      
+      // Limpar formulário
+      setEquipamentoAtual({
+        equipamento_id: 0,
+        nome: '',
+        codigo_ativo: '',
+        quantidade: 0,
+        horimetro: undefined,
+        responsavel: ''
+      });
+
+      setSuccess('Equipamento adicionado com sucesso!');
+      setOpenSnackbar(true);
+    } catch (error: any) {
+      console.error('❌ Erro detalhado ao adicionar equipamento:', {
+        error,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // Tratamento específico para turno não encontrado
+      if (error.response?.status === 404) {
+        console.log('🔄 Turno não encontrado (404), recarregando página...');
+        setError('Turno não encontrado. A página será recarregada.');
+        setOpenSnackbar(true);
+        
+        // Limpar estado e recarregar após 2 segundos
+        setTimeout(() => {
+          localStorage.removeItem('turno_ativo_id');
+          window.location.reload();
+        }, 2000);
+      } else if (error.response?.status === 400 && error.response?.data?.message?.includes('Nenhum turno em aberto')) {
+        console.log('🔄 Nenhum turno em aberto, redirecionando...');
+        setError('Nenhum turno em aberto. Redirecionando...');
+        setOpenSnackbar(true);
+        
+        // Limpar estado e verificar turno
+        setTimeout(() => {
+          localStorage.removeItem('turno_ativo_id');
+          setEstadoInterface('sem_turno');
+          setTurnoAtivo(null);
+          setEquipamentosLista([]);
+        }, 2000);
+      } else {
+        setError(error.response?.data?.message || 'Erro ao adicionar equipamento');
+        setOpenSnackbar(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Remover equipamento da lista
+  const handleRemoverEquipamento = (index: number) => {
+    const novosEquipamentos = equipamentosLista.filter((_, i) => i !== index);
+    setEquipamentosLista(novosEquipamentos);
+    setSuccess('Equipamento removido da lista');
+    setOpenSnackbar(true);
+  };
+
+  // Fechar turno
+  const handleFecharTurno = async () => {
+    if (!dadosFecharTurno.existencia_fim || dadosFecharTurno.existencia_fim <= 0) {
+      setError('Existência final deve ser maior que zero');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await turnoAbastecimentoService.fecharTurno(dadosFecharTurno);
+      setTurnoAtivo(response.turno);
+      setEstadoInterface('turno_fechado');
+      setDialogFecharTurno(false);
+      setSuccess('Turno fechado com sucesso!');
+      setOpenSnackbar(true);
+      
+      // Limpar dados
+      setEquipamentosLista([]);
+      setDadosFecharTurno({
+        existencia_fim: 0,
+        responsavel_abastecimento: ''
+      });
+    } catch (error: any) {
+      console.error('Erro ao fechar turno:', error);
+      setError(error.response?.data?.message || 'Erro ao fechar turno');
+      setOpenSnackbar(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calcular totais do turno
+  const calcularTotais = () => {
+    const totalAbastecido = equipamentosLista.reduce((total, eq) => total + eq.quantidade, 0);
+    const existenciaCalculada = turnoAtivo 
+      ? (turnoAtivo.existencia_inicio + (turnoAtivo.entrada_combustivel || 0) - totalAbastecido)
+      : 0;
+    
+    return { totalAbastecido, existenciaCalculada };
+  };
+
+  // Renderizar estado de verificação
+  const renderVerificando = () => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8 }}>
+      <CircularProgress size={60} sx={{ mb: 3 }} />
+      <Typography variant="h6" color="text.secondary">
+        Verificando turno ativo...
+      </Typography>
+    </Box>
+  );
+
+  // Renderizar formulário para iniciar turno
+  const renderSemTurno = () => (
+    <Card>
+      <CardContent>
+        <Stack spacing={3}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <PlayArrowIcon color="primary" />
+            <Typography variant="h6">Iniciar Novo Turno</Typography>
+          </Box>
+          
+          <Alert severity="info">
+            Nenhum turno ativo encontrado. Inicie um novo turno para começar o abastecimento.
+          </Alert>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              <TextField
+                label="Existência Inicial (L)"
+                type="number"
+                value={dadosIniciarTurno.existencia_inicio || ''}
+                onChange={(e) => setDadosIniciarTurno({
+                  ...dadosIniciarTurno,
+                  existencia_inicio: Number(e.target.value)
+                })}
+                fullWidth
+                required
+              />
+              <TextField
+                label="Responsável pelo Abastecimento"
+                value={dadosIniciarTurno.responsavel_abastecimento}
+                onChange={(e) => setDadosIniciarTurno({
+                  ...dadosIniciarTurno,
+                  responsavel_abastecimento: e.target.value
+                })}
+                fullWidth
+                required
+              />
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              <TextField
+                label="Matrícula"
+                value={dadosIniciarTurno.matricula || ''}
+                onChange={(e) => setDadosIniciarTurno({
+                  ...dadosIniciarTurno,
+                  matricula: e.target.value
+                })}
+                fullWidth
+                helperText="Matrícula do responsável (opcional)"
+              />
+              <TextField
+                label="Operador"
+                value={dadosIniciarTurno.operador || ''}
+                onChange={(e) => setDadosIniciarTurno({
+                  ...dadosIniciarTurno,
+                  operador: e.target.value
+                })}
+                fullWidth
+              />
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+              <TextField
+                label="Posto de Abastecimento"
+                value={dadosIniciarTurno.posto_abastecimento || ''}
+                onChange={(e) => setDadosIniciarTurno({
+                  ...dadosIniciarTurno,
+                  posto_abastecimento: e.target.value
+                })}
+                fullWidth
+              />
+              <TextField
+                label="Entrada de Combustível (L)"
+                type="number"
+                value={dadosIniciarTurno.entrada_combustivel || ''}
+                onChange={(e) => setDadosIniciarTurno({
+                  ...dadosIniciarTurno,
+                  entrada_combustivel: Number(e.target.value)
+                })}
+                fullWidth
+              />
+            </Box>
+          </Box>
+
+          <Button
+            variant="contained"
+            onClick={handleIniciarTurno}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon />}
+            disabled={loading}
+            size="large"
+          >
+            {loading ? 'Iniciando...' : 'Iniciar Turno'}
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+
+  // Renderizar turno ativo
+  const renderTurnoAtivo = () => {
+    const { totalAbastecido, existenciaCalculada } = calcularTotais();
+    
+    return (
+      <Stack spacing={3}>
+        {/* Informações do Turno */}
+        <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Dados Gerais
-            </Typography>
-            <Stack spacing={3}>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <DatePicker
-                  label="Data"
-                  value={cabecalho.data}
-                  onChange={(newValue) => handleCabecalhoChange('data', newValue)}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      variant: 'outlined'
-                    }
-                  }}
-                />
-              </Stack>
-              
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <TextField
-                  label="Existência Início (L)"
-                  type="number"
-                  value={cabecalho.existenciaInicio}
-                  onChange={(e) => handleCabecalhoChange('existenciaInicio', e.target.value)}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Entrada Combustível (L)"
-                  type="number"
-                  value={cabecalho.entradaCombustivel}
-                  onChange={(e) => handleCabecalhoChange('entradaCombustivel', e.target.value)}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Posto de Abastecimento"
-                  value={cabecalho.posto}
-                  onChange={(e) => handleCabecalhoChange('posto', e.target.value)}
-                  fullWidth
-                  required
-                />
-              </Stack>
-              
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <TextField
-                  label="Matrícula do Ativo"
-                  value={cabecalho.matricula}
-                  onChange={(e) => handleCabecalhoChange('matricula', e.target.value)}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Operador"
-                  value={cabecalho.operador}
-                  onChange={(e) => handleCabecalhoChange('operador', e.target.value)}
-                  fullWidth
-                  required
-                />
-              </Stack>
-            </Stack>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <LocalGasStationIcon color="primary" />
+              <Typography variant="h6">Turno Ativo - ID: {turnoAtivo?.id_abastecimento}</Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="primary.contrastText">Existência Inicial</Typography>
+                  <Typography variant="h6" color="primary.contrastText">{turnoAtivo?.existencia_inicio}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="info.contrastText">Entrada</Typography>
+                  <Typography variant="h6" color="info.contrastText">{turnoAtivo?.entrada_combustivel || 0}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="warning.contrastText">Total Abastecido</Typography>
+                  <Typography variant="h6" color="warning.contrastText">{totalAbastecido}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 22%' }, minWidth: 200 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="success.contrastText">Existência Calculada</Typography>
+                  <Typography variant="h6" color="success.contrastText">{existenciaCalculada}L</Typography>
+                </Box>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 
-        {/* Adicionar Equipamento */}
-        <Card sx={{ marginBottom: 3 }}>
+        {/* Abrir Turno */}
+        <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Adicionar Equipamento
-            </Typography>
-            {linhas.length === 0 && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Selecione um equipamento, preencha os dados obrigatórios e clique em "Adicionar" para incluí-lo na lista.
-              </Alert>
-            )}
-            <Stack spacing={2}>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-                <FormControl fullWidth size="small">
-                  <InputLabel>Equipamento</InputLabel>
-                  <Select
-                    value={equipamentoSelecionado}
-                    label="Equipamento"
-                    onChange={(e) => handleEquipamentoChange(e.target.value)}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <MenuItem disabled>
-                        <CircularProgress size={16} sx={{ mr: 1 }} />
-                        Carregando equipamentos...
-                      </MenuItem>
-                    ) : equipamentos.length === 0 ? (
-                      <MenuItem disabled>
-                        Nenhum equipamento disponível
-                      </MenuItem>
-                    ) : (
-                      equipamentos.map((equipamento) => (
-                        <MenuItem key={equipamento.equipamento_id} value={equipamento.equipamento_id}>
-                          {equipamento.nome} ({equipamento.codigo_ativo})
-                        </MenuItem>
-                      ))
+            <Typography variant="h6" gutterBottom>Abrir Turno</Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { md: 'end' } }}>
+                <Box sx={{ flex: { xs: 1, md: 3 }, minWidth: 200 }}>
+                  <Autocomplete
+                    options={equipamentos}
+                    getOptionLabel={(option) => `${option.nome} (${option.codigo_ativo})`}
+                    value={equipamentos.find(eq => eq.equipamento_id === equipamentoAtual.equipamento_id) || null}
+                    onChange={(_, newValue) => {
+                      setEquipamentoAtual({
+                        ...equipamentoAtual,
+                        equipamento_id: newValue?.equipamento_id || 0,
+                        nome: newValue?.nome || '',
+                        codigo_ativo: newValue?.codigo_ativo || ''
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Equipamento" required />
                     )}
-                  </Select>
-                </FormControl>
-                <TextField
-                  label="Ativo"
-                  value={linhaAtual.activo}
-                  onChange={(e) => handleLinhaChange('activo', e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Matrícula"
-                  value={linhaAtual.matricula}
-                  onChange={(e) => handleLinhaChange('matricula', e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-              </Stack>
-              
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-                <TextField
-                  label="Quantidade (L)"
-                  type="number"
-                  value={linhaAtual.quantidade}
-                  onChange={(e) => handleLinhaChange('quantidade', Number(e.target.value))}
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Km/H"
-                  type="number"
-                  value={linhaAtual.kmh || ''}
-                  onChange={(e) => handleLinhaChange('kmh', e.target.value ? Number(e.target.value) : null)}
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Assinatura"
-                  value={linhaAtual.assinatura}
-                  onChange={(e) => handleLinhaChange('assinatura', e.target.value)}
-                  fullWidth
-                  size="small"
-                />
-                <Button 
-                  onClick={adicionarLinha}
-                  variant="contained"
-                  color="primary"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  disabled={!linhaAtual.equipamento || !linhaAtual.matricula}
-                  sx={{
-                    minWidth: '120px'
-                  }}
-                >
-                  Adicionar
-                </Button>
-              </Stack>
-            </Stack>
+                  />
+                </Box>
+                <Box sx={{ flex: { xs: 1, md: 2 }, minWidth: 150 }}>
+                  <TextField
+                    label="Quantidade (L)"
+                    type="number"
+                    value={equipamentoAtual.quantidade || ''}
+                    onChange={(e) => setEquipamentoAtual({
+                      ...equipamentoAtual,
+                      quantidade: Number(e.target.value)
+                    })}
+                    fullWidth
+                    required
+                  />
+                </Box>
+                <Box sx={{ flex: { xs: 1, md: 2 }, minWidth: 150 }}>
+                  <TextField
+                    label="Horímetro"
+                    type="number"
+                    value={equipamentoAtual.horimetro || ''}
+                    onChange={(e) => setEquipamentoAtual({
+                      ...equipamentoAtual,
+                      horimetro: Number(e.target.value)
+                    })}
+                    fullWidth
+                  />
+                </Box>
+                <Box sx={{ flex: { xs: 1, md: 3 }, minWidth: 200 }}>
+                  <TextField
+                    label="Responsável"
+                    value={equipamentoAtual.responsavel || ''}
+                    onChange={(e) => setEquipamentoAtual({
+                      ...equipamentoAtual,
+                      responsavel: e.target.value
+                    })}
+                    fullWidth
+                  />
+                </Box>
+                <Box sx={{ flex: { xs: 1, md: 2 }, minWidth: 120 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleAbrirTurno}
+                    startIcon={<OpenInNewIcon />}
+                    disabled={loading || !equipamentoAtual.equipamento_id || !equipamentoAtual.quantidade}
+                    fullWidth
+                    color="primary"
+                  >
+                    Abrir Turno
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 
-        {/* Tabela de Equipamentos */}
-        {linhas.length > 0 && (
-          <Card sx={{ marginBottom: 3 }}>
+        {/* Lista de Equipamentos */}
+        {equipamentosLista.length > 0 && (
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Equipamentos Adicionados
-              </Typography>
+              <Typography variant="h6" gutterBottom>Equipamentos Abastecidos</Typography>
               <TableContainer component={Paper}>
-                <Table size="small">
+                <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>Equipamento</TableCell>
-                      <TableCell>Ativo</TableCell>
-                      <TableCell>Matrícula</TableCell>
+                      <TableCell>Código</TableCell>
                       <TableCell>Quantidade (L)</TableCell>
-                      <TableCell>Km/H</TableCell>
-                      <TableCell>Assinatura</TableCell>
+                      <TableCell>Horímetro</TableCell>
+                      <TableCell>Responsável</TableCell>
                       <TableCell>Ações</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {linhas.map((linha) => (
-                      <TableRow key={linha.id}>
-                        <TableCell>{linha.equipamento}</TableCell>
-                        <TableCell>{linha.activo}</TableCell>
-                        <TableCell>{linha.matricula}</TableCell>
-                        <TableCell>{linha.quantidade}</TableCell>
-                        <TableCell>{linha.kmh}</TableCell>
-                        <TableCell>{linha.assinatura}</TableCell>
+                    {equipamentosLista.map((equipamento, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{equipamento.nome}</TableCell>
+                        <TableCell>{equipamento.codigo_ativo}</TableCell>
+                        <TableCell>{equipamento.quantidade}</TableCell>
+                        <TableCell>{equipamento.horimetro || '-'}</TableCell>
+                        <TableCell>{equipamento.responsavel || '-'}</TableCell>
                         <TableCell>
-                          <IconButton 
-                            onClick={() => removerLinha(linha.id)}
+                          <IconButton
+                            onClick={() => handleRemoverEquipamento(index)}
                             color="error"
                             size="small"
                           >
@@ -774,75 +803,302 @@ function Abastecimento() {
           </Card>
         )}
 
-        {/* Rodapé */}
-        <Card sx={{ marginBottom: 3 }}>
+        {/* Botão Fechar Turno */}
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() => setDialogFecharTurno(true)}
+          startIcon={<StopIcon />}
+          size="large"
+        >
+          Fechar Turno
+        </Button>
+      </Stack>
+    );
+  };
+
+
+  // Renderizar turno fechado
+  const renderTurnoFechado = () => {
+    const { totalAbastecido } = calcularTotais();
+    const variacao = turnoAtivo?.existencia_fim 
+      ? Math.abs(turnoAtivo.existencia_fim - ((turnoAtivo.existencia_inicio + (turnoAtivo.entrada_combustivel || 0)) - totalAbastecido))
+      : 0;
+    
+    return (
+      <Stack spacing={3}>
+        <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Finalização
-            </Typography>
-            <Stack spacing={3}>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
-                <TextField
-                  label="Existência Final (L)"
-                  type="number"
-                  value={rodape.existenciaFim}
-                  onChange={(e) => handleRodapeChange('existenciaFim', e.target.value)}
-                  fullWidth
-                  helperText="Deixe vazio para calcular automaticamente"
-                />
-                <TextField
-                  label="Responsável pelo Abastecimento"
-                  value={rodape.responsavelFinal}
-                  onChange={(e) => handleRodapeChange('responsavelFinal', e.target.value)}
-                  fullWidth
-                  required
-                />
-              </Stack>
-              
-              {/* Campo Centro de Custo removido, não é mais exibido */}
-            </Stack>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <AssignmentIcon color="success" />
+              <Typography variant="h6">Turno Fechado - ID: {turnoAtivo?.id_abastecimento}</Typography>
+            </Box>
+            
+            <Alert severity="success" sx={{ mb: 3 }}>
+              Turno fechado com sucesso! Confira o resumo abaixo.
+            </Alert>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 15%' }, minWidth: 150 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="primary.contrastText">Existência Inicial</Typography>
+                  <Typography variant="h6" color="primary.contrastText">{turnoAtivo?.existencia_inicio}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 15%' }, minWidth: 150 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="info.contrastText">Entrada</Typography>
+                  <Typography variant="h6" color="info.contrastText">{turnoAtivo?.entrada_combustivel || 0}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 15%' }, minWidth: 150 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="warning.contrastText">Abastecido</Typography>
+                  <Typography variant="h6" color="warning.contrastText">{totalAbastecido}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 15%' }, minWidth: 150 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="success.contrastText">Existência Final</Typography>
+                  <Typography variant="h6" color="success.contrastText">{turnoAtivo?.existencia_fim}L</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 15%' }, minWidth: 150 }}>
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  p: 2, 
+                  bgcolor: variacao <= 1 ? 'success.light' : 'error.light', 
+                  borderRadius: 1 
+                }}>
+                  <Typography variant="body2" color={variacao <= 1 ? 'success.contrastText' : 'error.contrastText'}>
+                    Variação
+                  </Typography>
+                  <Typography variant="h6" color={variacao <= 1 ? 'success.contrastText' : 'error.contrastText'}>
+                    {variacao.toFixed(1)}L
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: { xs: '1 1 45%', md: '1 1 15%' }, minWidth: 150 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.300', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.primary">Data</Typography>
+                  <Typography variant="h6" color="text.primary">
+                    {new Date(turnoAtivo?.data_abastecimento || '').toLocaleDateString('pt-BR')}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            <Button
+              variant="contained"
+              onClick={() => {
+                setEstadoInterface('sem_turno');
+                setTurnoAtivo(null);
+                setEquipamentosLista([]);
+              }}
+              startIcon={<PlayArrowIcon />}
+              size="large"
+            >
+              Iniciar Novo Turno
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Botões de Ação */}
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={enviarParaBackend}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-            disabled={loading}
-          >
-            {loading ? 'Enviando...' : (isEditMode ? 'Atualizar Abastecimento' : 'Salvar Abastecimento')}
-          </Button>
-          
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={limparTudo}
-            startIcon={<ClearAllIcon />}
-            disabled={loading}
-          >
-            Limpar Tudo
-          </Button>
-        </Stack>
+        {/* Histórico de Turnos */}
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <HistoryIcon color="primary" />
+              <Typography variant="h6">
+                {turnoAtivo ? 'Histórico do Turno Atual' : 'Histórico de Todos os Turnos'}
+              </Typography>
+            </Box>
+            
+            {loadingHistorico ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                {turnoAtivo && historicoTurnoAtivo.length > 0 ? (
+                  // Histórico do turno ativo
+                  <Box>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      Exibindo apenas o histórico do turno atual (ID: {turnoAtivo.id_abastecimento})
+                    </Alert>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Data</TableCell>
+                          <TableCell>Equipamentos</TableCell>
+                          <TableCell>Total Litros</TableCell>
+                          <TableCell>Responsável</TableCell>
+                          <TableCell>Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {historicoTurnoAtivo.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{item.data}</TableCell>
+                            <TableCell>{equipamentosLista.length} equipamentos</TableCell>
+                            <TableCell>{item.quantidade} L</TableCell>
+                            <TableCell>{item.responsavel}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={item.status} 
+                                color="primary" 
+                                size="small" 
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                ) : !turnoAtivo && historico.length > 0 ? (
+                  // Histórico geral de turnos
+                  <Box>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      Exibindo histórico de todos os turnos anteriores
+                    </Alert>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Data</TableCell>
+                          <TableCell>Operador</TableCell>
+                          <TableCell>Posto</TableCell>
+                          <TableCell>Equipamentos</TableCell>
+                          <TableCell>Total Litros</TableCell>
+                          <TableCell>Responsável</TableCell>
+                          <TableCell>Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {historico.map((turno, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{new Date(turno.data_abastecimento).toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell>{turno.operador || '-'}</TableCell>
+                            <TableCell>{turno.posto_abastecimento || '-'}</TableCell>
+                            <TableCell>{turno.equipamentos_abastecimentos?.length || 0}</TableCell>
+                            <TableCell>{turno.quantidade_combustivel || 0} L</TableCell>
+                            <TableCell>{turno.responsavel_abastecimento}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={turno.status === 'fechado' ? 'Concluído' : 'Aberto'} 
+                                color={turno.status === 'fechado' ? 'success' : 'warning'} 
+                                size="small" 
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                ) : (
+                  // Sem histórico
+                  <Alert severity="info">
+                    {turnoAtivo 
+                      ? 'Nenhum histórico disponível para o turno atual.' 
+                      : 'Nenhum histórico de turnos encontrado.'}
+                  </Alert>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </Stack>
+    );
+  };
 
-        {/* Snackbar para notificações */}
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={6000}
-          onClose={() => setOpenSnackbar(false)}
+  return (
+    <Box sx={{ padding: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" gutterBottom>
+          Sistema de Turnos de Abastecimento
+        </Typography>
+        
+        {/* Botão de emergência para limpeza completa */}
+        <Button
+          variant="outlined"
+          color="warning"
+          size="small"
+          onClick={forcarLimpezaCompleta}
+          sx={{ ml: 2 }}
         >
-          <Alert 
-            onClose={() => setOpenSnackbar(false)} 
-            severity={error ? 'error' : 'success'}
-            sx={{ width: '100%' }}
-          >
-            {error || success}
-          </Alert>
-        </Snackbar>
+          🧹 Limpar Estado
+        </Button>
       </Box>
-    </LocalizationProvider>
+
+      {/* Renderizar baseado no estado */}
+      {estadoInterface === 'verificando' && renderVerificando()}
+      {estadoInterface === 'sem_turno' && renderSemTurno()}
+      {estadoInterface === 'turno_ativo' && renderTurnoAtivo()}
+      {estadoInterface === 'turno_fechado' && renderTurnoFechado()}
+
+      {/* Diálogo para fechar turno */}
+      <Dialog open={dialogFecharTurno} onClose={() => setDialogFecharTurno(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Fechar Turno</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <Alert severity="warning">
+              Ao fechar o turno, não será possível adicionar mais equipamentos.
+            </Alert>
+            
+            <TextField
+              label="Existência Final (L)"
+              type="number"
+              value={dadosFecharTurno.existencia_fim || ''}
+              onChange={(e) => setDadosFecharTurno({
+                ...dadosFecharTurno,
+                existencia_fim: Number(e.target.value)
+              })}
+              fullWidth
+              required
+              helperText={`Existência calculada: ${calcularTotais().existenciaCalculada}L`}
+            />
+            
+            <TextField
+              label="Responsável Final (opcional)"
+              value={dadosFecharTurno.responsavel_abastecimento || ''}
+              onChange={(e) => setDadosFecharTurno({
+                ...dadosFecharTurno,
+                responsavel_abastecimento: e.target.value
+              })}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogFecharTurno(false)}>Cancelar</Button>
+          <Button 
+            onClick={handleFecharTurno}
+            variant="contained"
+            color="error"
+            disabled={loading || !dadosFecharTurno.existencia_fim}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <StopIcon />}
+          >
+            {loading ? 'Fechando...' : 'Fechar Turno'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar para notificações */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setOpenSnackbar(false)} 
+          severity={error ? 'error' : 'success'}
+          sx={{ width: '100%' }}
+        >
+          {error || success}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 
