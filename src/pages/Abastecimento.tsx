@@ -88,6 +88,38 @@ function Abastecimento() {
       const response = await equipamentosService.getAll();
       console.log('📋 Equipamentos carregados:', response);
       console.log('🆔 IDs dos equipamentos disponíveis:', response?.map(eq => eq.equipamento_id));
+      
+      // Análise detalhada dos equipamentos
+      if (response && response.length > 0) {
+        console.log('📊 Total de equipamentos:', response.length);
+        
+        const comAlerta = response.filter(eq => eq.alerta_manutencao === true);
+        const semAlerta = response.filter(eq => eq.alerta_manutencao === false);
+        
+        console.log('🚨 Equipamentos COM alerta de manutenção:', comAlerta.length);
+        console.log('✅ Equipamentos SEM alerta de manutenção:', semAlerta.length);
+        
+        if (comAlerta.length > 0) {
+          console.log('🔍 Equipamentos com alerta:', comAlerta.map(eq => ({
+            id: eq.equipamento_id,
+            nome: eq.nome,
+            codigo: eq.codigo_ativo,
+            alerta: eq.alerta_manutencao
+          })));
+        }
+        
+        if (semAlerta.length > 0) {
+          console.log('🔍 Equipamentos sem alerta:', semAlerta.map(eq => ({
+            id: eq.equipamento_id,
+            nome: eq.nome,
+            codigo: eq.codigo_ativo,
+            alerta: eq.alerta_manutencao
+          })));
+        }
+      } else {
+        console.log('⚠️ Nenhum equipamento foi carregado!');
+      }
+      
       setEquipamentos(response || []);
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
@@ -409,6 +441,16 @@ function Abastecimento() {
             onClick={handleVoltar}
           >
             Voltar
+          </Button>
+
+          {/* BOTÃO TEMPORÁRIO DE DEBUG */}
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={() => equipamentosService.debugAPI()}
+            sx={{ ml: 2 }}
+          >
+            🔬 DEBUG API
           </Button>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="h4">
