@@ -24,6 +24,7 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { styled, keyframes } from '@mui/material/styles';
 import { abastecimentoService } from '../services/abastecimentoService';
 import { equipamentosService } from '../services/equipamentosService';
+import { buildApiUrl, getAuthHeaders } from '../config/api';
 
 // Interface para centros de custo
 
@@ -505,12 +506,8 @@ const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void 
       console.log('🏢 Carregando centros de custo...');
       
       // Usar exatamente a mesma abordagem da página CentroCusto.tsx
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/centros-custo', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(buildApiUrl('/api/centros-custo'), {
+        headers: getAuthHeaders()
       });
 
       const result = await response.json();
@@ -540,11 +537,8 @@ const CentrosCustoSection: React.FC<{ loading: boolean; refreshData: () => void 
               console.log(`📡 Buscando estatísticas do centro ${centro.nome} (ID: ${centroId})`);
               
               // Usar fetch direto para estatísticas também
-              const estatisticasResponse = await fetch(`http://localhost:3001/api/centros-custo/${centroId}/estatisticas`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
+              const estatisticasResponse = await fetch(buildApiUrl(`/api/centros-custo/${centroId}/estatisticas`), {
+                headers: getAuthHeaders()
               });
               
               if (estatisticasResponse.ok) {

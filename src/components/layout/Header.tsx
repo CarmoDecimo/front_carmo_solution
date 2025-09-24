@@ -38,6 +38,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/auth/AuthContext';
 import { authService } from '../../services/authService';
 import { useTheme } from '../../contexts/ThemeProvider';
+import { API_ENDPOINTS, getAuthHeaders } from '../../config/api';
 
 interface HeaderProps {
   toggleDrawer: () => void;
@@ -120,11 +121,8 @@ function Header({ toggleDrawer }: HeaderProps) {
 
       // 1. Buscar equipamentos com alertas de manutenção
       try {
-        const response = await fetch('http://localhost:3001/api/equipamentos/alertas', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-            'Content-Type': 'application/json'
-          }
+        const response = await fetch(API_ENDPOINTS.equipamentosAlertas, {
+          headers: getAuthHeaders()
         });
 
         if (response.ok) {
@@ -167,11 +165,8 @@ function Header({ toggleDrawer }: HeaderProps) {
 
       // 2. Buscar estatísticas de abastecimentos para verificar estoque
       try {
-        const response = await fetch('http://localhost:3001/api/abastecimentos', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-            'Content-Type': 'application/json'
-          }
+        const response = await fetch(API_ENDPOINTS.abastecimentos, {
+          headers: getAuthHeaders()
         });
 
         if (response.ok) {
@@ -202,11 +197,8 @@ function Header({ toggleDrawer }: HeaderProps) {
 
       // 3. Buscar equipamentos inativos
       try {
-        const response = await fetch('http://localhost:3001/api/equipamentos', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-            'Content-Type': 'application/json'
-          }
+        const response = await fetch(API_ENDPOINTS.equipamentos, {
+          headers: getAuthHeaders()
         });
 
         if (response.ok) {

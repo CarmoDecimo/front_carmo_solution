@@ -976,7 +976,7 @@ Este guia fornece toda a estrutura necessária para implementar as páginas fron
 
 ### Acesso à Documentação
 ```
-🌐 Swagger UI: http://localhost:3001/api/docs
+🌐 Swagger UI: http://localhost:3000/api/docs
 ```
 
 ### Arquivos de Documentação Swagger
@@ -1166,7 +1166,7 @@ const swaggerOptions = {
 2. **Exibir equipamentos** em lista ou cards com informações relevantes
 3. **Mostrar alertas** visuais para equipamentos com `alerta_manutencao: true`
 4. **Implementar validação** baseada nas respostas de erro da API
-5. **Consultar Swagger** em `http://localhost:3001/api/docs` para todos os detalhes
+5. **Consultar Swagger** em `http://localhost:3000/api/docs` para todos os detalhes
 
 ---
 

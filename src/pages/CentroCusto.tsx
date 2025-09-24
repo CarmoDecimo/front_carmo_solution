@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { Edit, Delete, Add, Download, AccountBalance } from '@mui/icons-material';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { buildApiUrl, getAuthHeaders } from '../config/api';
 
 // Interface para Centro de Custo conforme API
 interface CentroCusto {
@@ -88,7 +89,6 @@ const CentroCustoPage: React.FC = () => {
   const carregarCentros = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const params = new URLSearchParams();
       
       // Aplicar filtros
@@ -96,11 +96,8 @@ const CentroCustoPage: React.FC = () => {
       if (filtros.ativo !== 'todos') params.append('ativo', filtros.ativo);
       if (filtros.responsavel) params.append('responsavel', filtros.responsavel);
 
-      const response = await fetch(`http://localhost:3001/api/centros-custo?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(`${buildApiUrl('/api/centros-custo')}?${params}`, {
+        headers: getAuthHeaders()
       });
 
       const result = await response.json();
@@ -119,7 +116,6 @@ const CentroCustoPage: React.FC = () => {
   };
 
   const carregarTotalEquipamentos = async (centrosList: CentroCusto[]) => {
-    const token = localStorage.getItem('authToken');
     
     // Processar cada centro de custo
     const centrosComEquipamentos = await Promise.all(
@@ -127,11 +123,8 @@ const CentroCustoPage: React.FC = () => {
         try {
           setLoadingEquipamentos(prev => new Set(prev).add(centro.centro_custo_id));
           
-          const response = await fetch(`http://localhost:3001/api/centros-custo/${centro.centro_custo_id}/equipamentos`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+          const response = await fetch(buildApiUrl(`/api/centros-custo/${centro.centro_custo_id}/equipamentos`), {
+            headers: getAuthHeaders()
           });
 
           if (response.ok) {
@@ -198,15 +191,10 @@ const CentroCustoPage: React.FC = () => {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('authToken');
-      
       // Fazer requisição para exportar horímetros usando a nova rota
-      const response = await fetch(`http://localhost:3001/api/abastecimentos/exportar-horimetros/${centro.centro_custo_id}`, {
+      const response = await fetch(buildApiUrl(`/api/abastecimentos/exportar-horimetros/${centro.centro_custo_id}`), {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
 
       console.log('📡 Status da resposta:', response.status);
@@ -289,7 +277,6 @@ const CentroCustoPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const data = {
         nome: nome.trim(),
         codigo: codigo.trim() || undefined,
@@ -300,15 +287,12 @@ const CentroCustoPage: React.FC = () => {
         email_responsavel: emailResponsavel.trim() || undefined
       };
 
-      const url = editId ? `http://localhost:3001/api/centros-custo/${editId}` : 'http://localhost:3001/api/centros-custo';
+      const url = editId ? buildApiUrl('/api/centros-custo', editId) : buildApiUrl('/api/centros-custo');
       const method = editId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data)
       });
 
@@ -344,12 +328,9 @@ const CentroCustoPage: React.FC = () => {
 
     setDeleteDialog(prev => ({ ...prev, loading: true }));
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/centros-custo/${deleteDialog.centro.centro_custo_id}`, {
+      const response = await fetch(buildApiUrl('/api/centros-custo', deleteDialog.centro.centro_custo_id), {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: getAuthHeaders()
       });
 
       const result = await response.json();

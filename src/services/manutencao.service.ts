@@ -1,4 +1,5 @@
 import { api } from './api';
+import { buildApiUrl } from '../config/api';
 
 // Interfaces para tipagem
 export interface FiltrosManutencao {
@@ -188,7 +189,7 @@ class ManutencaoService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`http://localhost:3001/api/manutencoes/download?${params.toString()}`, {
+      const response = await fetch(`${buildApiUrl('/api/manutencoes/download')}?${params.toString()}`, {
         method: 'GET',
         headers,
       });

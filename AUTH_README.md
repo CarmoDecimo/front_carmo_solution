@@ -31,7 +31,7 @@ POST /api/auth/register
 #### Exemplo de Requisição:
 
 ```javascript
-fetch('http://localhost:3001/api/auth/register', {
+fetch('http://localhost:3000/api/auth/register', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -90,7 +90,7 @@ POST /api/auth/login
 #### Exemplo de Requisição:
 
 ```javascript
-fetch('http://localhost:3001/api/auth/login', {
+fetch('http://localhost:3000/api/auth/login', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
@@ -156,7 +156,7 @@ GET /api/auth/me
 // Recuperar o token armazenado
 const token = localStorage.getItem('authToken');
 
-fetch('http://localhost:3001/api/auth/me', {
+fetch('http://localhost:3000/api/auth/me', {
   method: 'GET',
   headers: {
     'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ POST /api/auth/logout
 // Recuperar o token armazenado
 const token = localStorage.getItem('authToken');
 
-fetch('http://localhost:3001/api/auth/logout', {
+fetch('http://localhost:3000/api/auth/logout', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -245,7 +245,7 @@ fetch('http://localhost:3001/api/auth/logout', {
 
 ```javascript
 // src/services/authService.js
-const API_URL = 'http://localhost:3001/api';
+const API_URL = 'http://localhost:3000/api';
 
 export const authService = {
   async register(userData) {

@@ -11,6 +11,7 @@ import {
 import { equipamentosService, categoriaEquipamentoService } from '../services';
 import type { Categoria, Equipamento } from '../services';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { buildApiUrl, getAuthHeaders } from '../config/api';
 
 // Interface para Centro de Custo
 interface CentroCusto {
@@ -243,12 +244,8 @@ const EquipamentosPage: React.FC = () => {
 
   const carregarCentrosCusto = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/centros-custo', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(buildApiUrl('/api/centros-custo'), {
+        headers: getAuthHeaders()
       });
 
       const result = await response.json();
@@ -324,7 +321,6 @@ const EquipamentosPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const data = {
         nome: nome.trim(),
         codigo_ativo: codigoAtivo.trim(),
@@ -336,15 +332,12 @@ const EquipamentosPage: React.FC = () => {
         observacoes: observacoes.trim() || undefined
       };
 
-      const url = editId ? `http://localhost:3001/api/equipamentos/${editId}` : 'http://localhost:3001/api/equipamentos';
+      const url = editId ? buildApiUrl('/api/equipamentos', editId) : buildApiUrl('/api/equipamentos');
       const method = editId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data)
       });
 
@@ -381,12 +374,9 @@ const EquipamentosPage: React.FC = () => {
 
     setDeleteDialog(prev => ({ ...prev, loading: true }));
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/equipamentos/${deleteDialog.equipamento.equipamento_id}`, {
+      const response = await fetch(buildApiUrl('/api/equipamentos', deleteDialog.equipamento.equipamento_id), {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: getAuthHeaders()
       });
 
       const result = await response.json();
@@ -421,19 +411,15 @@ const EquipamentosPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const data = {
         horimetro_atual: novoHorimetro,
         data_leitura: dataLeitura,
         observacoes: observacoesHorimetro.trim() || undefined
       };
 
-      const response = await fetch(`http://localhost:3001/api/equipamentos/${equipamentoSelecionado.equipamento_id}/horimetro`, {
+      const response = await fetch(buildApiUrl(`/api/equipamentos/${equipamentoSelecionado.equipamento_id}/horimetro`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data)
       });
 
@@ -467,7 +453,6 @@ const EquipamentosPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const data = {
         horimetro_manutencao: horimetroManutencao,
         data_manutencao: dataManutencao,
@@ -476,12 +461,9 @@ const EquipamentosPage: React.FC = () => {
         novo_intervalo: novoIntervalo || 250
       };
 
-      const response = await fetch(`http://localhost:3001/api/equipamentos/${equipamentoSelecionado.equipamento_id}/manutencao`, {
+      const response = await fetch(buildApiUrl(`/api/equipamentos/${equipamentoSelecionado.equipamento_id}/manutencao`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(data)
       });
 

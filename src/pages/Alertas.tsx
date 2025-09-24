@@ -15,6 +15,7 @@ import {
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
+import { API_ENDPOINTS, getAuthHeaders } from '../config/api';
 
 interface AlertaData {
   id: number;
@@ -45,11 +46,8 @@ const AlertasPage: React.FC = () => {
   const fetchAlertas = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/equipamentos/alertas', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(API_ENDPOINTS.equipamentosAlertas, {
+        headers: getAuthHeaders()
       });
 
       if (response.ok) {
