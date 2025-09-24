@@ -77,8 +77,7 @@ const EquipamentosPage: React.FC = () => {
       nome: '',
       categoria_id: '',
       status_equipamento: 'todos',
-      centro_custo_id: '',
-      alerta_manutencao: false
+      centro_custo_id: ''
     };
 
     // Para debug, vamos verificar se há filtros salvos que possam estar causando problema
@@ -150,32 +149,19 @@ const EquipamentosPage: React.FC = () => {
     await carregarTodosEquipamentos();
   };
 
-  // Função para garantir comportamento consistente independente do ambiente
-  const verificarComportamentoFiltro = () => {
-    const switchLigado = filtros.alerta_manutencao;
-    console.log('🔧 Verificação de comportamento:', {
-      switchLigado,
-      comportamentoEsperado: switchLigado ? 'Apenas com alerta' : 'Todos os equipamentos',
-      localStorage: localStorage.getItem('equipamentos-filtros'),
-      userAgent: navigator.userAgent.substring(0, 50) + '...'
-    });
-  };
 
   const carregarEquipamentos = async () => {
     setLoading(true);
-    
-    // Verificar comportamento antes da requisição
-    verificarComportamentoFiltro();
     
     try {
       console.log('🔍 Carregando equipamentos com filtros:', filtros);
       
       // Preparar filtros para o service
       const filtrosService = {
+        nome: filtros.nome || undefined,
         categoria_id: filtros.categoria_id ? Number(filtros.categoria_id) : undefined,
         status_equipamento: filtros.status_equipamento !== 'todos' ? filtros.status_equipamento : undefined,
-        centro_custo_id: filtros.centro_custo_id ? Number(filtros.centro_custo_id) : undefined,
-        alerta_manutencao: filtros.alerta_manutencao // O service já trata corretamente este campo
+        centro_custo_id: filtros.centro_custo_id ? Number(filtros.centro_custo_id) : undefined
       };
       
       // Remover campos undefined
@@ -784,23 +770,6 @@ const EquipamentosPage: React.FC = () => {
         
         <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={filtros.alerta_manutencao}
-                  onChange={e => setFiltros(f => ({ ...f, alerta_manutencao: e.target.checked }))}
-                  color="warning"
-                />
-              }
-              label={filtros.alerta_manutencao ? "Apenas com alerta de manutenção" : "Mostrando todos os equipamentos"}
-              sx={{ 
-                '& .MuiFormControlLabel-label': { 
-                  fontSize: { xs: '0.875rem', md: '1rem' },
-                  color: filtros.alerta_manutencao ? 'warning.main' : 'text.secondary'
-                } 
-              }}
-            />
-            
             {fallbackUsado && (
               <Chip
                 label="Modo Compatibilidade"
@@ -811,15 +780,13 @@ const EquipamentosPage: React.FC = () => {
               />
             )}
             
-            {!filtros.alerta_manutencao && (
-              <Chip
-                label="Todos os equipamentos"
-                color="info"
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: '0.75rem' }}
-              />
-            )}
+            <Chip
+              label="Todos os equipamentos"
+              color="info"
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.75rem' }}
+            />
           </Box>
           
           <Button
@@ -830,8 +797,7 @@ const EquipamentosPage: React.FC = () => {
                 nome: '',
                 categoria_id: '',
                 status_equipamento: 'todos',
-                centro_custo_id: '',
-                alerta_manutencao: false
+                centro_custo_id: ''
               };
               
               // Limpar localStorage completamente
