@@ -37,7 +37,8 @@ export interface IniciarTurnoRequest {
 export interface AdicionarEquipamentosRequest {
   entrada_combustivel?: number;
   equipamentos: {
-    equipamento_id: number;
+    equipamento: number;      // ID do equipamento (para compatibilidade)
+    equipamento_id: number;   // ID do equipamento (campo obrigatório na DB)
     quantidade: number;
     horimetro?: number;
     responsavel?: string;
@@ -120,6 +121,12 @@ export const turnoAbastecimentoService = {
       console.log('📋 Dados enviados:', JSON.stringify(dados, null, 2));
       console.log('🔗 URL da requisição:', `/api/abastecimentos/${turnoId}/adicionar-equipamentos`);
       
+      // Log detalhado dos IDs dos equipamentos
+      console.log('🆔 IDs dos equipamentos sendo enviados:');
+      dados.equipamentos.forEach((eq, index) => {
+        console.log(`   Equipamento ${index + 1}: ID=${eq.equipamento_id}, Quantidade=${eq.quantidade}`);
+      });
+      
       // Validar turnoId
       if (!turnoId || turnoId <= 0) {
         throw new Error(`ID do turno inválido: ${turnoId}`);
@@ -134,19 +141,34 @@ export const turnoAbastecimentoService = {
       dados.equipamentos.forEach((eq, index) => {
         console.log(`🔍 Validando equipamento ${index + 1}:`, eq);
         
-        if (!eq.equipamento_id || eq.equipamento_id <= 0) {
-          throw new Error(`Equipamento ${index + 1}: ID do equipamento inválido (${eq.equipamento_id})`);
+        // Validar equipamento (campo de compatibilidade)
+        if (!eq.equipamento || eq.equipamento <= 0) {
+          throw new Error(`Equipamento ${index + 1}: ID do equipamento inválido (${eq.equipamento})`);
         }
+        
+        // Validar equipamento_id (campo obrigatório na DB)
+        if (!eq.equipamento_id || eq.equipamento_id <= 0) {
+          throw new Error(`Equipamento ${index + 1}: equipamento_id inválido (${eq.equipamento_id})`);
+        }
+        
         if (!eq.quantidade || eq.quantidade <= 0) {
           throw new Error(`Equipamento ${index + 1}: Quantidade inválida (${eq.quantidade})`);
         }
         
         // Validar tipos de dados
+        if (typeof eq.equipamento !== 'number') {
+          throw new Error(`Equipamento ${index + 1}: equipamento deve ser um número (recebido: ${typeof eq.equipamento})`);
+        }
         if (typeof eq.equipamento_id !== 'number') {
-          throw new Error(`Equipamento ${index + 1}: ID deve ser um número (recebido: ${typeof eq.equipamento_id})`);
+          throw new Error(`Equipamento ${index + 1}: equipamento_id deve ser um número (recebido: ${typeof eq.equipamento_id})`);
         }
         if (typeof eq.quantidade !== 'number') {
           throw new Error(`Equipamento ${index + 1}: Quantidade deve ser um número (recebido: ${typeof eq.quantidade})`);
+        }
+        
+        // Verificar se ambos os IDs são iguais (devem ser o mesmo valor)
+        if (eq.equipamento !== eq.equipamento_id) {
+          throw new Error(`Equipamento ${index + 1}: equipamento (${eq.equipamento}) e equipamento_id (${eq.equipamento_id}) devem ser iguais`);
         }
       });
       

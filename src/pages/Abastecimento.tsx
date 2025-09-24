@@ -84,7 +84,10 @@ function Abastecimento() {
   // Carregar equipamentos disponíveis
   const carregarEquipamentos = async () => {
     try {
+      console.log('🔄 Carregando equipamentos...');
       const response = await equipamentosService.getAll();
+      console.log('📋 Equipamentos carregados:', response);
+      console.log('🆔 IDs dos equipamentos disponíveis:', response?.map(eq => eq.equipamento_id));
       setEquipamentos(response || []);
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
@@ -238,7 +241,8 @@ function Abastecimento() {
       const dados: AdicionarEquipamentosRequest = {
         entrada_combustivel: entradaCombustivel,
         equipamentos: equipamentosLista.map(eq => ({
-          equipamento_id: eq.equipamento_id,
+          equipamento: eq.equipamento_id,     // Para compatibilidade com backend
+          equipamento_id: eq.equipamento_id,  // Campo obrigatório na DB
           quantidade: eq.quantidade,
           horimetro: eq.horimetro,
           responsavel: eq.responsavel
@@ -557,6 +561,7 @@ function Abastecimento() {
                   getOptionLabel={(option) => `${option.nome} (${option.codigo_ativo})`}
                   value={equipamentos.find(eq => eq.equipamento_id === equipamentoAtual.equipamento_id) || null}
                   onChange={(_, newValue) => {
+                    console.log('🎯 Equipamento selecionado:', newValue);
                     setEquipamentoAtual({
                       ...equipamentoAtual,
                       equipamento_id: newValue?.equipamento_id || 0,
