@@ -9,7 +9,6 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
-import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import CloseIcon from '@mui/icons-material/Close';
 import { equipamentosService } from '../services';
 import { abastecimentoService } from '../services/abastecimentoService';
@@ -33,7 +32,7 @@ interface EquipamentoLista {
 function Abastecimento() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   
   // Estados principais
   const [turnoAtivo, setTurnoAtivo] = useState<TurnoAbastecimento | null>(null);
@@ -211,6 +210,31 @@ function Abastecimento() {
 
     setLoading(true);
     try {
+      // Validar dados antes de enviar
+      console.log('🔍 Validando dados antes do envio...');
+      console.log('📊 Turno ativo:', turnoAtivo);
+      console.log('📋 Lista de equipamentos:', equipamentosLista);
+      console.log('⛽ Entrada de combustível:', entradaCombustivel);
+      
+      // Validar se todos os equipamentos têm dados válidos
+      for (let i = 0; i < equipamentosLista.length; i++) {
+        const eq = equipamentosLista[i];
+        console.log(`🔍 Validando equipamento ${i + 1}:`, eq);
+        
+        if (!eq.equipamento_id || eq.equipamento_id <= 0) {
+          throw new Error(`Equipamento ${i + 1} (${eq.nome}): ID inválido`);
+        }
+        if (!eq.quantidade || eq.quantidade <= 0) {
+          throw new Error(`Equipamento ${i + 1} (${eq.nome}): Quantidade inválida`);
+        }
+        if (typeof eq.equipamento_id !== 'number') {
+          throw new Error(`Equipamento ${i + 1} (${eq.nome}): ID deve ser numérico`);
+        }
+        if (typeof eq.quantidade !== 'number') {
+          throw new Error(`Equipamento ${i + 1} (${eq.nome}): Quantidade deve ser numérica`);
+        }
+      }
+      
       const dados: AdicionarEquipamentosRequest = {
         entrada_combustivel: entradaCombustivel,
         equipamentos: equipamentosLista.map(eq => ({
@@ -223,6 +247,7 @@ function Abastecimento() {
 
       console.log('⛽ Enviando todos os equipamentos para API:', dados);
       console.log('📋 Total de equipamentos a enviar:', equipamentosLista.length);
+      console.log('🆔 ID do turno:', turnoAtivo.id_abastecimento);
       
       await turnoAbastecimentoService.adicionarEquipamentos(turnoAtivo.id_abastecimento, dados);
       
@@ -242,7 +267,25 @@ function Abastecimento() {
       
     } catch (error: any) {
       console.error('❌ Erro ao enviar equipamentos:', error);
-      setError(error.response?.data?.message || 'Erro ao enviar equipamentos');
+      console.error('📊 Detalhes do erro:', {
+        message: error.message,
+        status: error.status,
+        data: error.data,
+        response: error.response
+      });
+      
+      // Mensagem de erro mais detalhada
+      let errorMessage = 'Erro ao enviar equipamentos';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.status) {
+        errorMessage = `Erro ${error.status}: ${error.message || 'Erro desconhecido'}`;
+      }
+      
+      setError(errorMessage);
       setOpenSnackbar(true);
     } finally {
       setLoading(false);

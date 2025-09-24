@@ -116,15 +116,79 @@ export const turnoAbastecimentoService = {
   // 2. Adicionar equipamentos ao turno
   adicionarEquipamentos: async (turnoId: number, dados: AdicionarEquipamentosRequest): Promise<AdicionarEquipamentosResponse> => {
     try {
-      console.log('⛽ Adicionando equipamentos ao turno:', turnoId, dados);
+      console.log('⛽ Adicionando equipamentos ao turno:', turnoId);
+      console.log('📋 Dados enviados:', JSON.stringify(dados, null, 2));
+      console.log('🔗 URL da requisição:', `/api/abastecimentos/${turnoId}/adicionar-equipamentos`);
+      
+      // Validar turnoId
+      if (!turnoId || turnoId <= 0) {
+        throw new Error(`ID do turno inválido: ${turnoId}`);
+      }
+      
+      // Validar dados antes de enviar
+      if (!dados.equipamentos || dados.equipamentos.length === 0) {
+        throw new Error('Nenhum equipamento fornecido para adicionar');
+      }
+      
+      // Validar cada equipamento
+      dados.equipamentos.forEach((eq, index) => {
+        console.log(`🔍 Validando equipamento ${index + 1}:`, eq);
+        
+        if (!eq.equipamento_id || eq.equipamento_id <= 0) {
+          throw new Error(`Equipamento ${index + 1}: ID do equipamento inválido (${eq.equipamento_id})`);
+        }
+        if (!eq.quantidade || eq.quantidade <= 0) {
+          throw new Error(`Equipamento ${index + 1}: Quantidade inválida (${eq.quantidade})`);
+        }
+        
+        // Validar tipos de dados
+        if (typeof eq.equipamento_id !== 'number') {
+          throw new Error(`Equipamento ${index + 1}: ID deve ser um número (recebido: ${typeof eq.equipamento_id})`);
+        }
+        if (typeof eq.quantidade !== 'number') {
+          throw new Error(`Equipamento ${index + 1}: Quantidade deve ser um número (recebido: ${typeof eq.quantidade})`);
+        }
+      });
+      
+      // Verificar se o turno ainda está ativo antes de enviar
+      console.log('🔍 Verificando se o turno ainda está ativo...');
+      try {
+        const turnoAtual = await turnoAbastecimentoService.consultarTurno(turnoId);
+        if (turnoAtual.abastecimento.existencia_fim !== null && turnoAtual.abastecimento.existencia_fim !== undefined) {
+          throw new Error('O turno já foi fechado e não pode receber novos equipamentos');
+        }
+        console.log('✅ Turno confirmado como ativo');
+      } catch (consultError: any) {
+        console.error('❌ Erro ao verificar status do turno:', consultError);
+        if (consultError.status === 404) {
+          throw new Error('Turno não encontrado. Pode ter sido removido ou não existe.');
+        }
+        // Se não conseguir consultar, continua com a tentativa (pode ser problema temporário)
+        console.log('⚠️ Não foi possível verificar o status do turno, continuando...');
+      }
+      
       const response = await api.put<AdicionarEquipamentosResponse>(
         `/api/abastecimentos/${turnoId}/adicionar-equipamentos`,
         dados
       );
       
+      console.log('✅ Resposta da API:', response);
       return response;
     } catch (error: any) {
       console.error('❌ Erro ao adicionar equipamentos:', error);
+      console.error('📊 Status do erro:', error.status);
+      console.error('📝 Mensagem do erro:', error.message);
+      console.error('📄 Dados do erro:', error.data);
+      
+      // Log detalhado do erro da API
+      if (error.response) {
+        console.error('🌐 Resposta HTTP:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
       
       // Tratamento específico para erros de turno
       if (error.response?.status === 400 && error.response?.data?.message?.includes('Nenhum turno em aberto')) {
