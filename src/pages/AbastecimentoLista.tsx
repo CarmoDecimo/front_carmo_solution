@@ -312,16 +312,6 @@ const AbastecimentoListaPage: React.FC = () => {
                         </Box>
                       </Box>
                       
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Custo</Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          <Chip 
-                            label={abastecimento.custo ? `${abastecimento.custo.toFixed(2)} Kz` : 'N/A'}
-                            color="success"
-                            size="small"
-                          />
-                        </Box>
-                      </Box>
                     </Box>
                     
                     <Box>
@@ -435,17 +425,6 @@ const AbastecimentoListaPage: React.FC = () => {
                     backgroundColor: 'transparent',
                     py: 2,
                     textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                    minWidth: 100
-                  }}>
-                    Custo
-                  </TableCell>
-                  <TableCell sx={{ 
-                    color: 'white', 
-                    fontWeight: 'bold', 
-                    fontSize: '0.95rem',
-                    backgroundColor: 'transparent',
-                    py: 2,
-                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
                     minWidth: 160
                   }} align="center">
                     Ações
@@ -476,17 +455,6 @@ const AbastecimentoListaPage: React.FC = () => {
                       />
                     </TableCell>
                     <TableCell>{abastecimento.responsavel_abastecimento}</TableCell>
-                    <TableCell>
-                      {abastecimento.custo ? (
-                        <Chip 
-                          label={`${abastecimento.custo.toFixed(2)} Kz`}
-                          color="success"
-                          size="small"
-                        />
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">N/A</Typography>
-                      )}
-                    </TableCell>
                     <TableCell align="center">
                       <IconButton onClick={() => handleView(abastecimento)} color="info" size="small">
                         <Visibility />
@@ -502,7 +470,7 @@ const AbastecimentoListaPage: React.FC = () => {
                 ))}
                 {abastecimentosFiltrados.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <Typography color="textSecondary">
                         {abastecimentos.length === 0 
                           ? 'Nenhum abastecimento encontrado' 

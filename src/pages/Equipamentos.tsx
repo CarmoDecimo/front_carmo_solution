@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, Table, TableBody, TableCell, TableHead, TableRow, Paper,
-  Typography, Container, Box, Chip, Alert, Snackbar, FormControlLabel, Switch,
+  Typography, Container, Box, Chip, Alert, Snackbar, Card, CardContent,
   Tooltip, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
 import { 
@@ -175,12 +175,6 @@ const EquipamentosPage: React.FC = () => {
       
       // Usar o service em vez de fetch direto
       const equipamentosData = await equipamentosService.getAll(filtrosService);
-      
-      console.log('📊 Equipamentos recebidos:', {
-        total: equipamentosData?.length || 0,
-        comAlerta: equipamentosData?.filter(eq => eq.alerta_manutencao)?.length || 0,
-        semAlerta: equipamentosData?.filter(eq => !eq.alerta_manutencao)?.length || 0
-      });
       
       if (equipamentosData) {
         setEquipamentos(equipamentosData);
@@ -638,11 +632,7 @@ const EquipamentosPage: React.FC = () => {
       carregarEquipamentos();
     } catch (error) {
       console.error('Erro ao remover associação:', error);
-      setSnackbar({
-        open: true,
-        message: error instanceof Error ? error.message : 'Erro ao remover associação',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: 'Erro ao remover associação', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -698,19 +688,21 @@ const EquipamentosPage: React.FC = () => {
       </Box>
 
       {/* Filtros */}
-      <Paper sx={{ p: { xs: 2, md: 3 }, mb: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
-          Filtros
-        </Typography>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mb: 2 }}>
+            Filtros
+          </Typography>
+        
         <Box sx={{ 
           display: 'grid',
           gridTemplateColumns: { 
             xs: '1fr', 
             sm: 'repeat(2, 1fr)', 
-            md: 'repeat(3, 1fr)', 
+            md: 'repeat(2, 1fr)', 
             lg: 'repeat(4, 1fr)' 
           },
-          gap: 2,
+          gap: 2.5,
           alignItems: 'end'
         }}>
           <TextField
@@ -768,27 +760,8 @@ const EquipamentosPage: React.FC = () => {
           </FormControl>
         </Box>
         
-        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            {fallbackUsado && (
-              <Chip
-                label="Modo Compatibilidade"
-                color="warning"
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: '0.75rem' }}
-              />
-            )}
-            
-            <Chip
-              label="Todos os equipamentos"
-              color="info"
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: '0.75rem' }}
-            />
-          </Box>
-          
+        {/* Botão de limpar filtros */}
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="outlined"
             size="small"
@@ -800,25 +773,17 @@ const EquipamentosPage: React.FC = () => {
                 centro_custo_id: ''
               };
               
-              // Limpar localStorage completamente
               localStorage.removeItem('equipamentos-filtros');
-              console.log('🧹 localStorage limpo e filtros resetados');
-              
-              // Aplicar filtros limpos
               setFiltros(filtrosLimpos);
               setFallbackUsado(false);
-              
-              // Forçar recarregamento de todos os equipamentos
-              setTimeout(() => {
-                carregarTodosEquipamentos();
-              }, 100);
+              carregarTodosEquipamentos();
             }}
-            sx={{ minWidth: 'auto' }}
           >
-            Limpar & Recarregar
+            Limpar Filtros
           </Button>
         </Box>
-      </Paper>
+        </CardContent>
+      </Card>
 
       {/* Tabela */}
       <Paper sx={{ overflow: 'hidden', boxShadow: 3 }}>
