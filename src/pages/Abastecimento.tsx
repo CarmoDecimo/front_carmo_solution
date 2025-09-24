@@ -442,16 +442,6 @@ function Abastecimento() {
           >
             Voltar
           </Button>
-
-          {/* BOTÃO TEMPORÁRIO DE DEBUG */}
-          <Button
-            variant="outlined"
-            color="warning"
-            onClick={() => equipamentosService.debugAPI()}
-            sx={{ ml: 2 }}
-          >
-            🔬 DEBUG API
-          </Button>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="h4">
               Editar Abastecimento - Turno #{turnoAtivo.id_abastecimento}

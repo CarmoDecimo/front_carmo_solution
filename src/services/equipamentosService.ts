@@ -249,59 +249,5 @@ export const equipamentosService = {
       console.error('Erro ao buscar categorias:', error);
       return [];
     }
-  },
-
-  // FUNÇÃO DE DEBUG: Testar API diretamente
-  debugAPI: async () => {
-    try {
-      console.log('🔬 TESTE DIRETO DA API - Iniciando...');
-      
-      // Teste 1: Chamada sem filtros
-      console.log('📡 Teste 1: GET /api/equipamentos (sem filtros)');
-      const response1 = await api.get<EquipamentosResponse>('/api/equipamentos');
-      console.log('📊 Resposta sem filtros:', {
-        success: response1.success,
-        total: response1.total,
-        equipamentos: response1.data?.length,
-        data: response1.data
-      });
-      
-      // Análise dos alertas na resposta
-      if (response1.data) {
-        const comAlerta = response1.data.filter(eq => eq.alerta_manutencao === true);
-        const semAlerta = response1.data.filter(eq => eq.alerta_manutencao === false);
-        console.log('🚨 API - Equipamentos COM alerta:', comAlerta.length);
-        console.log('✅ API - Equipamentos SEM alerta:', semAlerta.length);
-        
-        if (comAlerta.length > 0) {
-          console.log('🔍 Detalhes dos equipamentos com alerta:', comAlerta);
-        }
-      }
-      
-      // Teste 2: Chamada explícita para equipamentos com alerta
-      console.log('📡 Teste 2: GET /api/equipamentos?alerta_manutencao=true');
-      const response2 = await api.get<EquipamentosResponse>('/api/equipamentos?alerta_manutencao=true');
-      console.log('📊 Resposta com filtro alerta=true:', {
-        success: response2.success,
-        total: response2.total,
-        equipamentos: response2.data?.length,
-        data: response2.data
-      });
-      
-      // Teste 3: Chamada explícita para equipamentos sem alerta
-      console.log('📡 Teste 3: GET /api/equipamentos?alerta_manutencao=false');
-      const response3 = await api.get<EquipamentosResponse>('/api/equipamentos?alerta_manutencao=false');
-      console.log('📊 Resposta com filtro alerta=false:', {
-        success: response3.success,
-        total: response3.total,
-        equipamentos: response3.data?.length,
-        data: response3.data
-      });
-      
-      console.log('🔬 TESTE DIRETO DA API - Concluído!');
-      
-    } catch (error) {
-      console.error('❌ Erro no teste da API:', error);
-    }
   }
 };
